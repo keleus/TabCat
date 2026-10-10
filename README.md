@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="public/icon/tabcat.svg" width="112" height="112" alt="TabCat 猫猫头像" />
+  <a href="public/icon/tabcat.svg">
+    <img src="public/icon/tabcat.svg" width="300" height="300" alt="TabCat 猫猫简笔画图标" />
+  </a>
 </p>
 
 <h1 align="center">TabCat</h1>
