@@ -1,3 +1,4 @@
+import { WEATHER_STORAGE_KEY } from '../../lib/weather-cache.js';
 import { createDesktop } from '../../lib/desktop-ui.js';
 import { bindDesktopNavigation } from '../../lib/desktop-navigation.js';
 import { browser } from 'wxt/browser';
@@ -114,7 +115,7 @@ async function init() {
   syncEditMode();
   new ResizeObserver(fitDesktopHeight).observe($('.desktop-content'));
   const [stored, initialTree] = await Promise.all([
-    browser.storage.local.get(['tabcat', 'tabcatBing', 'tabcatGallery']),
+    browser.storage.local.get(['tabcat', 'tabcatBing', 'tabcatGallery', WEATHER_STORAGE_KEY]),
     browser.bookmarks.getTree().catch(() => null),
   ]);
   state = normalizeState(stored.tabcat);
@@ -128,7 +129,7 @@ async function init() {
   decorateSettings();
   bookmarkBar = createBookmarkBar({ bar: $('#bookmarkBar'), items: $('#bookmarkBarItems'), menu: $('#bookmarkFolderMenu'), getState: () => state, report: showStatus, initialTree });
   siteLibrary = createSiteLibrary({ dialog: $('#siteLibraryModal'), getState: () => state, custom: () => openCustomSiteModal(), widgets: () => desktop.widgets,
-    startDrag: item => desktop.startCandidate(item), endDrag: () => desktop.endCandidate(),
+    startDrag: (item, event) => desktop.startCandidate(item, event), endDrag: () => desktop.endCandidate(),
     onToggle: open => { document.documentElement.classList.toggle('library-open', open); renderSites(); },
     add: async (id, placement) => {
     const result = await addCatalogSite(id);
@@ -136,7 +137,7 @@ async function init() {
     if (result.site && !result.duplicate) await desktop.place(`site:${result.site.id}`, placement);
     return result;
   } });
-  desktop = createDesktop({ addCandidate: (item, placement) => siteLibrary.addCandidate(item, placement), getState: () => state, isEditing: () => editMode, siteCard, renderIcon: renderDesktopIcon, render: renderAll, save: () => storage.save(), report: showStatus, openSite, editSite: openSiteModal, removeSite, goToPage, getPage: () => currentPage, suppress: () => { suppressClick = true; setTimeout(() => { suppressClick = false; }, 150); } });
+  desktop = createDesktop({ initialWeather: stored[WEATHER_STORAGE_KEY], addCandidate: (item, placement) => siteLibrary.addCandidate(item, placement), getState: () => state, isEditing: () => editMode, siteCard, renderIcon: renderDesktopIcon, render: renderAll, save: () => storage.save(), report: showStatus, openSite, editSite: openSiteModal, removeSite, goToPage, getPage: () => currentPage, suppress: () => { suppressClick = true; setTimeout(() => { suppressClick = false; }, 150); } });
   bindEvents();
   syncControls();
   applyAppearance();
@@ -275,6 +276,8 @@ function renderSites() {
   const metrics = gridMetrics();
   document.documentElement.style.setProperty('--grid-width', `${metrics.width}px`);
   document.documentElement.style.setProperty('--column-gap', `${metrics.gap}px`);
+  // Card edges follow the icon artwork, not the wider label cells.
+  document.documentElement.style.setProperty('--widget-inset', `${(Math.max(92, state.iconSize + 28) - state.iconSize) / 2}px`);
   $('#sitesPages').style.setProperty('--site-cols', metrics.columns);
   const { pages } = desktop.render(metrics.columns, state.layoutRows);
   // Configured rows are page capacity; empty trailing rows must not offset visual centering.
@@ -292,6 +295,9 @@ function fitDesktopHeight() {
   const available = Math.max(1, shell.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom));
   // Read the untransformed height so repeated resize/settings updates never compound scaling.
   content.style.setProperty('--desktop-scale', Math.min(1, available / Math.max(1, content.offsetHeight)));
+  // Help is an overlay: omit it when crowded instead of shrinking the desktop.
+  const hint = $('#editingHint');
+  hint.classList.toggle('is-crowded', editMode && hint.getBoundingClientRect().bottom + 12 > content.getBoundingClientRect().top);
 }
 
 function updatePagination() {
@@ -451,7 +457,7 @@ function bindDialogDismissal() {
 
 function bindSettingsControls() {
   SETTING_KEYS.forEach(key => {
-    const el = $(`#${key}`);
+    const el = $(`#${key === 'showSiteNames' ? 'namelessMode' : key}`);
     el.addEventListener(el.type === 'range' || el.type === 'color' ? 'input' : 'change', async () => {
       if (key === 'backgroundUrl' && el.value && !normalizeUrl(el.value)) { el.setCustomValidity('请输入有效的 HTTP/HTTPS 图片网址'); el.reportValidity(); return; }
       el.setCustomValidity('');
@@ -460,6 +466,7 @@ function bindSettingsControls() {
       }
       if (key === 'searchSuggestions') suggestions?.close();
       state[key] = el.type === 'checkbox' ? el.checked : (typeof DEFAULTS[key] === 'boolean' ? el.value === 'true' : (el.type === 'range' || ['layoutColumns','layoutRows'].includes(key) ? Number(el.value) : el.value));
+      if (key === 'showSiteNames') state[key] = !el.checked;
       if (key === 'iconTextColor') { state.iconTextColorMode = 'custom'; $('#iconTextColorMode').value = 'custom'; }
       applyAppearance(); updateClock(); renderSites(); updateOutputs(); await storage.save();
     });
@@ -467,7 +474,7 @@ function bindSettingsControls() {
 }
 
 function syncControls() {
-  SETTING_KEYS.forEach(key => { const input = $(`#${key}`); if (input.type === 'checkbox') input.checked = state[key]; else input.value = state[key]; });
+  SETTING_KEYS.forEach(key => { const input = $(`#${key === 'showSiteNames' ? 'namelessMode' : key}`); if (input.type === 'checkbox') input.checked = key === 'showSiteNames' ? !state[key] : state[key]; else input.value = state[key]; });
   updateOutputs();
 }
 

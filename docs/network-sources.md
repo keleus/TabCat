@@ -33,7 +33,7 @@ GitHub、YouTube、Gmail 的默认图案比例为 75%，为图案留出空白；
 天气使用 [Open-Meteo 天气 API](https://open-meteo.com/en/docs) 与 [城市搜索 API](https://open-meteo.com/en/docs/geocoding-api)：
 
 - 城市搜索：`https://geocoding-api.open-meteo.com/v1/search?name=...&count=5&language=zh&format=json`，仅在用户点击搜索时发送城市名称，用户选择具体结果。
-- 当前天气：`https://api.open-meteo.com/v1/forecast?latitude=...&longitude=...&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto`，发送所选城市坐标，不申请设备定位。数据在当前页面内缓存 15 分钟，8 秒超时，支持手动刷新与失败提示，组件中保留提供方署名。
+- 当前天气：`https://api.open-meteo.com/v1/forecast?latitude=...&longitude=...&current=temperature_2m,relative_humidity_2m,weather_code,is_day&daily=sunrise,sunset&forecast_days=2&timeformat=unixtime&timezone=auto`，发送自动定位或手动选择的城市坐标，不申请设备定位。根据返回的 WMO 天气代码与 `is_day` 切换卡片场景（晴、云、阴、雾、雨、雪、雷雨及夜间），未知代码使用中性样式。天气读数、城市坐标和日出日落时间缓存在本机扩展存储，保留最近 20 组坐标读数及自动定位的上次结果；不写入设置备份。打开标签页先渲染缓存，按每小时 00、15、30、45 分钟划分有效期，过期时后台刷新。IP 城市定位使用同一有效期，不保存 IP 地址；同源标签页通过 Web Locks 合并并发刷新。单次请求 8 秒超时，手动刷新会跳过有效期，失败保留旧数据并标注更新时间。组件中保留提供方署名。日夜以 API 返回的城市日出日落时间戳判断，页面可见时每 30 秒检查显示状态，重新显示标签页时立即检查；缺少日出日落数据时采用服务端 `is_day`。夜间晴天月亮按农历日绘制简化月相，仅为装饰示意，不代表精确天文照明比例。
 - 两类请求均省略凭据和来源页信息。没有天气组件时不发送天气请求。
 
 网页小组件仅接受 HTTPS URL，当前页可见时首次加载。iframe 使用 `sandbox="allow-scripts allow-forms allow-same-origin allow-popups"` 和 `referrerpolicy="no-referrer"`，不授予顶层导航、下载或扩展 API 权限。远程页面按浏览器第三方存储策略运行，可能向其自身服务发送请求；TabCat 不代理网页，也不移除网站的 X-Frame-Options 或 CSP 限制。备忘仅保存至本机扩展存储，不发送到天气或网页服务。

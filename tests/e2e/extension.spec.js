@@ -498,6 +498,46 @@ test('desktop is quiet, drag reorders, and context removal can be undone', async
   await expect(home.locator('#searchInput')).toBeFocused();
 });
 
+test('icons make room before release, stay stable, and restore on cancelled drags', async ({ extension }, testInfo) => {
+  const { home, worker } = extension;
+  await settings(home, 'sites');
+  await home.locator('#layoutColumns').selectOption('4');
+  await home.locator('#layoutRows').selectOption('2');
+  await home.locator('#closeSettings').click();
+  await home.locator('#settingsPanel').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
+  await desktopMenu(home, '进入编辑模式');
+  const tile = id => home.locator(`#sitesPages [data-desktop-key="site:${id}"]`);
+  await expect.poll(() => home.locator('#sitesPages').evaluate(node => node.getAnimations({ subtree: true }).length)).toBe(0);
+  const source = await tile('github').boundingBox(), target = await tile('notion').boundingBox();
+  const original = await tile('youtube').boundingBox();
+  const savedOrder = () => worker.evaluate(async () => (await chrome.storage.local.get('tabcat')).tabcat.desktopOrder);
+  const before = await savedOrder();
+  const start = async () => {
+    await home.mouse.move(source.x + 35, source.y + 35); await home.mouse.down();
+    await home.mouse.move(source.x + 48, source.y + 35, { steps: 5 });
+    await home.mouse.move(target.x + target.width - 4, target.y + 35, { steps: 12 });
+    await home.mouse.move(target.x + target.width - 3, target.y + 35);
+  };
+  await start();
+  await expect(home.locator('.desktop-drop-slot')).toBeVisible();
+  await expect.poll(async () => Math.round((await tile('youtube').boundingBox()).x)).toBe(Math.round(source.x));
+  await expect.poll(async () => Math.round((await tile('notion').boundingBox()).y)).toBe(Math.round(source.y));
+  expect(await savedOrder()).toEqual(before);
+  // Repeated native dragover events at one point must not undo the preview.
+  for (let i = 0; i < 4; i++) await home.mouse.move(target.x + target.width - 3, target.y + 35);
+  expect(Math.round((await tile('youtube').boundingBox()).x)).toBe(Math.round(source.x));
+  await home.screenshot({ path: testInfo.outputPath('icons-live-reorder.png') });
+  await home.keyboard.press('Escape'); await home.mouse.up();
+  await expect(home.locator('.desktop-drop-slot')).toHaveCount(0);
+  await expect.poll(async () => Math.round((await tile('youtube').boundingBox()).x)).toBe(Math.round(original.x));
+  expect(await savedOrder()).toEqual(before);
+  await start(); await home.mouse.up();
+  await expect.poll(async () => (await savedOrder()).slice(0, 5).map(item => item.id)).toEqual(['site:youtube', 'site:bilibili', 'site:zhihu', 'site:notion', 'site:github']);
+  await home.reload();
+  await expect(tile('youtube')).toBeVisible();
+  expect((await savedOrder()).slice(0, 5).map(item => item.id)).toEqual(['site:youtube', 'site:bilibili', 'site:zhihu', 'site:notion', 'site:github']);
+});
+
 test('local wallpaper and backup restore work through the settings UI', async ({ extension }, testInfo) => {
   const { home, worker } = extension;
   await home.locator('#wallpaperButton').click();
@@ -1673,6 +1713,7 @@ test('note widgets persist, reorder with keyboard, resize, and undo removal', as
   await note.fill('整理设计稿\n周五发布 <script>这只是文本</script>');
   await expect.poll(() => worker.evaluate(async () => (await chrome.storage.local.get('tabcat')).tabcat.widgets[0]?.text)).toContain('周五发布');
   await home.reload(); await expect(note).toHaveValue('整理设计稿\n周五发布 <script>这只是文本</script>');
+  await expect(home.locator('[data-note-count]')).toHaveText(`${[...'整理设计稿\n周五发布 <script>这只是文本</script>'].length} 字`);
   await home.locator('#editDesktopButton').click();
   await home.locator('[data-widget-edit]').click();
   await home.locator('#widgetSize').selectOption('4,3');
@@ -1762,6 +1803,7 @@ test('todos save, sync across tabs, toggle and undo; calculator parses without e
   const other = await context.newPage(); await other.goto(`chrome-extension://${id}/newtab.html`);
   await expect(other.locator('.todo-row')).toHaveCount(2);
   await other.locator('[data-todo-check]').first().check(); await expect(home.locator('[data-todo-check]').first()).toBeChecked();
+  await expect(home.locator('.todo-progress')).toHaveAttribute('aria-valuenow', '50');
   await home.locator('[data-todo-clear]').click(); await expect(home.locator('.todo-row')).toHaveCount(1);
   await home.locator('#status').getByRole('button', { name: '撤销' }).click(); await expect(home.locator('.todo-row')).toHaveCount(2);
   await expect.poll(() => worker.evaluate(async () => (await chrome.storage.local.get('tabcat')).tabcat.widgets[0].items.length)).toBe(2);
@@ -1770,9 +1812,9 @@ test('todos save, sync across tabs, toggle and undo; calculator parses without e
   const input = home.locator('[data-calculator-input]'), result = home.locator('[data-calculator-result]');
   await input.fill('(12 + 8) * 3'); await input.press('Enter'); await expect(result).toHaveText('60');
   await input.fill('200 * 15%'); await input.press('Enter'); await expect(result).toHaveText('30');
-  await input.fill('1 / 0'); await input.press('Enter'); await expect(result).toHaveText('不能除以零');
+  await input.fill('1 / 0'); await input.press('Enter'); await expect(result).toHaveText('不能除以零'); await expect(input).toHaveAttribute('aria-invalid', 'true');
   await input.fill('alert(1)'); await input.press('Enter'); await expect(result).toContainText('算式有误');
-  await home.locator('[data-calculator-clear]').click(); await expect(input).toHaveValue('');
+  await home.locator('[data-calculator-clear]').click(); await expect(input).toHaveValue(''); await expect(input).toHaveAttribute('aria-invalid', 'false');
   await home.screenshot({ path: testInfo.outputPath('productivity-tools.png'), fullPage: true });
   await other.close();
 });
@@ -1812,6 +1854,8 @@ test('desktop stays vertically centered in one viewport with an overlaid bookmar
     }, scenario);
     await expect(home.locator('#showBookmarksBar')).toBeChecked({ checked: scenario.bookmarks });
     await expect(home.locator('#layoutRows')).toHaveValue(String(scenario.rows));
+    const icon = home.locator('#sitesPages [data-site="github"] .site-icon');
+    let normalIconWidth;
     for (const editing of [false, true]) {
       if (editing) await home.locator('#editDesktopButton').click();
       await expect.poll(() => home.evaluate(() => {
@@ -1821,6 +1865,23 @@ test('desktop stays vertically centered in one viewport with an overlaid bookmar
         return Math.abs((box.top - top) - (innerHeight - box.bottom));
       })).toBeLessThan(2);
       const bounds = await home.locator('.desktop-content').boundingBox();
+      if (!editing) normalIconWidth = (await icon.boundingBox()).width;
+      else {
+        await expect.poll(async () => Math.abs((await icon.boundingBox()).width - normalIconWidth)).toBeLessThan(1);
+        const gap = await home.locator('[data-desktop-key="site:github"]').evaluate(tile => {
+          const frame = tile.querySelector('.tile-edit-frame').getBoundingClientRect();
+          const icon = tile.querySelector('.site-icon').getBoundingClientRect();
+          return Math.min(icon.top - frame.top, icon.left - frame.left, frame.right - icon.right) / (icon.width / tile.querySelector('.site-icon').offsetWidth);
+        });
+        expect(gap).toBeGreaterThanOrEqual(7);
+        const hint = home.locator('#editingHint');
+        if (await hint.isVisible()) {
+          const hintBox = await hint.boundingBox();
+          expect(hintBox.y + hintBox.height).toBeLessThanOrEqual(bounds.y - 11);
+        }
+        await expect.poll(() => home.locator('#sitesPages').evaluate(node => node.getAnimations({ subtree: true }).filter(animation => animation.effect?.target.matches('.desktop-tile')).length)).toBe(0);
+        await home.screenshot({ path: testInfo.outputPath(`editing-spacing-${scenario.width}-${scenario.height}.png`) });
+      }
       expect(bounds.y).toBeGreaterThanOrEqual(scenario.bookmarks ? 42 : 0);
       expect(bounds.y + bounds.height).toBeLessThanOrEqual(scenario.height);
       await home.mouse.move(scenario.width / 2, scenario.height / 2);
@@ -2028,4 +2089,197 @@ test('wallpaper alarms update hidden tabs before focus and keep rotating without
   await expireAndTick();
   await expect.poll(() => worker.evaluate(() => globalThis.rotationCalls)).toBe(3);
   await expect.poll(() => worker.evaluate(async () => (await chrome.storage.local.get('tabcatGallery')).tabcatGallery.id)).toBe('3');
+});
+
+test('weather scenes follow conditions and daylight without a redundant title', async ({ extension }, testInfo) => {
+  const { home, context } = extension;
+  let code = 0, day = 1;
+  await context.route('https://ipwho.is/**', route => route.fulfill({ json: { success: true, city: '杭州', latitude: 30.29, longitude: 120.16 } }));
+  await context.route('https://api.open-meteo.com/**', route => {
+    expect(new URL(route.request().url()).searchParams.get('current')).toContain('is_day');
+    return route.fulfill({ json: { current: { temperature_2m: 24, weather_code: code, is_day: day, relative_humidity_2m: 65, time: '2026-10-10T14:30' } } });
+  });
+  await addTool(home, 'weather');
+  const card = home.locator('#sitesPages .widget-weather');
+  for (const [nextCode, nextDay, scene, label] of [[0, 1, 'clear', '晴'], [0, 0, 'clear', '晴'], [2, 1, 'cloudy', '多云'], [3, 1, 'overcast', '阴'], [45, 1, 'fog', '雾'], [65, 1, 'rain', '大雨'], [75, 1, 'snow', '大雪'], [95, 1, 'storm', '雷雨'], [123, 1, 'unknown', '天气未知']]) {
+    code = nextCode; day = nextDay;
+    await card.locator('[data-weather-refresh]').click();
+    await expect(card).toHaveClass(new RegExp(`weather-${scene}(?: |$)`));
+    await expect(card.locator('[data-weather]')).toContainText(label);
+    await expect.poll(() => card.evaluate(node => node.classList.contains('weather-night'))).toBe(day === 0);
+    await expect(card.locator('.widget-header')).toHaveCount(0);
+    await card.screenshot({ path: testInfo.outputPath(`weather-${scene}-${day}.png`) });
+  }
+  await home.emulateMedia({ reducedMotion: 'reduce' });
+  code = 65; await card.locator('[data-weather-refresh]').click();
+  await expect(card).toHaveClass(/weather-rain/);
+  expect(await card.locator('.weather-particles i').first().evaluate(node => getComputedStyle(node).animationName)).toBe('none');
+  await home.locator('#editDesktopButton').click();
+  await expect(card.locator('.widget-header strong')).toHaveCount(0);
+  await home.locator('#sitesPages [data-widget-edit]').click();
+  await expect(home.locator('#widgetModal')).toBeVisible();
+  await home.locator('#saveWidget').click();
+  await expect(home.locator('#widgetModal')).toBeHidden();
+  await home.locator('#finishEditing').click();
+  await home.setViewportSize({ width: 390, height: 844 });
+  await expect(card.locator('[data-weather-refresh]')).toBeVisible();
+  await expect.poll(() => card.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+  await card.screenshot({ path: testInfo.outputPath('weather-mobile.png') });
+});
+
+test('weather and shortcut dragging show a floating preview and clean it up', async ({ extension }, testInfo) => {
+  const { home, context, worker } = extension;
+  await context.route('https://ipwho.is/**', route => route.fulfill({ json: { success: true, city: '杭州', latitude: 30.29, longitude: 120.16 } }));
+  await context.route('https://api.open-meteo.com/**', route => route.fulfill({ json: { current: { temperature_2m: 24, weather_code: 0, is_day: 1, relative_humidity_2m: 65, time: '2026-10-10T14:30' } } }));
+  await addTool(home, 'weather');
+  await expect(home.locator('#sitesPages .weather-clear')).toHaveCount(1);
+  await home.locator('#editDesktopButton').click();
+  for (const source of [home.locator('#sitesPages .desktop-widget'), home.locator('#sitesPages [data-desktop-key="site:github"]')]) {
+    // Wait for the preceding layout transition before capturing drag coordinates.
+    await expect.poll(() => home.locator('#sitesPages').evaluate(node => node.getAnimations({ subtree: true }).filter(animation => animation.effect?.target.matches('.desktop-tile')).length)).toBe(0);
+    const from = await source.boundingBox(), target = home.locator('#sitesPages [data-desktop-key="site:youtube"]');
+    const to = await target.boundingBox();
+    await home.mouse.move(from.x + 35, from.y + 65); await home.mouse.down();
+    await home.mouse.move(from.x + 48, from.y + 68, { steps: 5 });
+    await home.mouse.move(to.x + 18, to.y + 35, { steps: 8 });
+    // Native DnD needs a move after dragenter to emit dragover on the target.
+    await home.mouse.move(to.x + 19, to.y + 35);
+    await expect(home.locator('.desktop-drag-preview')).toHaveCount(1);
+    await expect(source).toHaveClass(/dragging/);
+    await expect(target).toHaveClass(/drop-before/);
+    await expect(home.locator('.desktop-drop-slot')).toBeVisible();
+    await expect(source).toHaveCSS('opacity', '0');
+    await expect.poll(() => home.locator('.desktop-drag-preview').evaluate(node => Math.round(parseFloat(node.style.left))))
+      .toBe(Math.round(to.x + 19 - 35));
+    await expect.poll(() => home.locator('#sitesPages').evaluate(node => node.getAnimations({ subtree: true }).filter(animation => animation.effect?.target.matches('.desktop-tile')).length)).toBe(0);
+    await home.screenshot({ path: testInfo.outputPath(`drag-${await source.getAttribute('data-desktop-key')}.png`) });
+    await home.mouse.up();
+    await expect(home.locator('.desktop-drag-preview')).toHaveCount(0);
+    await expect(home.locator('#sitesPages .dragging')).toHaveCount(0);
+  }
+  await expect.poll(() => worker.evaluate(async () => (await chrome.storage.local.get('tabcat')).tabcat.desktopOrder.map(item => item.id).indexOf('site:github') < (await chrome.storage.local.get('tabcat')).tabcat.desktopOrder.map(item => item.id).indexOf('site:youtube'))).toBe(true);
+  await home.reload(); await expect(home.locator('#sitesPages .widget-weather')).toHaveCount(1);
+});
+
+test('tool cards fit compact light and dark layouts and expose their changing states', async ({ extension }, testInfo) => {
+  const { home, worker, context } = extension;
+  await home.emulateMedia({ reducedMotion: 'reduce' });
+  await home.clock.setFixedTime(new Date('2026-10-10T12:00:00Z'));
+  await context.route('https://widgets.example.test/**', route => route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<body style="font:14px system-ui;background:#f4f7fa;color:#34465b;padding:16px"><h3>随手阅读</h3><p>让常用工具留在桌面。</p></body>' }));
+  const samples = [
+    { type: 'note', name: '今日备忘', text: '整理今天的灵感\n把想做的事，慢慢变成日常。' },
+    { type: 'todo', name: '待办', items: [{ id: 'a', text: '整理项目资料', done: true }, { id: 'b', text: '留一点时间给自己', done: false }] },
+    { type: 'clock', name: '时钟', timezone: 'UTC', hour24: true },
+    { type: 'calendar', name: '日历' },
+    { type: 'countdown', name: '旅行出发', targetDate: '2026-10-20' },
+    { type: 'pomodoro', name: '番茄钟', focusMinutes: 25, breakMinutes: 5, timer: { phase: 'focus', remaining: 900, endsAt: null } },
+    { type: 'calculator', name: '计算器' },
+    { type: 'web', name: '阅读角', url: 'https://widgets.example.test/embed' },
+  ];
+  for (const theme of ['light', 'dark']) {
+    await home.setViewportSize({ width: theme === 'light' ? 1360 : 390, height: 900 });
+    for (const sample of samples) {
+      await worker.evaluate(async ({ sample, theme }) => {
+        const { tabcat } = await chrome.storage.local.get('tabcat');
+        await chrome.storage.local.set({ tabcat: { ...tabcat, theme, sites: [], folders: [], widgets: [{ ...sample, id: 'visual-tool', width: 2, height: 2 }], desktopOrder: [{ id: 'widget:visual-tool' }] } });
+      }, { sample, theme });
+      const card = home.locator(`#sitesPages .widget-${sample.type}`);
+      await expect(card).toBeVisible();
+      await expect(home.locator('html')).toHaveAttribute('data-theme', theme);
+      await expect.poll(() => card.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+      if (sample.type === 'pomodoro') {
+        const ring = await card.locator('.timer-ring').boundingBox(); expect(ring.width).toBeGreaterThan(80); expect(ring.height).toBeGreaterThan(80);
+        await expect(card).toHaveAttribute('data-timer-state', 'paused');
+        await expect(card.locator('[data-timer-status]')).toContainText('已暂停');
+        expect(await card.locator('.tool-pomodoro').evaluate(node => node.scrollHeight <= node.clientHeight)).toBe(true);
+      }
+      if (sample.type === 'clock') { await expect(card.locator('[data-live-time]')).toHaveText('12:00:00'); await expect(card).not.toHaveClass(/clock-night/); }
+      if (sample.type === 'countdown') { await expect(card).toHaveAttribute('data-countdown-state', 'future'); await expect(card.locator('.widget-header strong')).toHaveText('旅行出发'); }
+      if (sample.type === 'web') { await expect(card.locator('.web-origin')).toHaveText('widgets.example.test'); await expect(card.locator('iframe')).toHaveAttribute('src', sample.url); }
+      await card.screenshot({ path: testInfo.outputPath(`${sample.type}-${theme}.png`), animations: 'disabled' });
+    }
+  }
+  // The clock scene follows the configured timezone; it is independent of weather permissions.
+  await worker.evaluate(async () => { const { tabcat } = await chrome.storage.local.get('tabcat'); tabcat.widgets = [{ id: 'visual-tool', type: 'clock', name: '伦敦时间', width: 2, height: 2, timezone: 'UTC', hour24: false }]; await chrome.storage.local.set({ tabcat }); });
+  await home.clock.setFixedTime(new Date('2026-10-10T22:00:00Z'));
+  await expect(home.locator('#sitesPages .widget-clock')).toHaveClass(/clock-night/);
+  await expect(home.locator('#sitesPages .widget-clock .widget-header strong')).toHaveText('伦敦时间');
+  await home.locator('#sitesPages .widget-clock').screenshot({ path: testInfo.outputPath('clock-night-custom.png') });
+});
+
+test('widget spans align with icon artwork edges rather than label cells', async ({ extension }) => {
+  const { home, worker } = extension;
+  await addTool(home, 'note');
+  await home.emulateMedia({ reducedMotion: 'reduce' });
+  await home.mouse.move(0, 0);
+  for (const scenario of [
+    { width: 2, height: 2, iconSize: 72, columnGap: 46, rowGap: 34, columns: 4 },
+    { width: 2, height: 2, iconSize: 48, columnGap: 20, rowGap: 16, columns: 4 },
+    { width: 3, height: 2, iconSize: 88, columnGap: 28, rowGap: 24, columns: 5 },
+    { width: 4, height: 3, iconSize: 64, columnGap: 24, rowGap: 28, columns: 6 },
+  ]) {
+    await worker.evaluate(async scenario => {
+      const { tabcat } = await chrome.storage.local.get('tabcat');
+      const widget = { id: 'aligned', type: 'note', name: '对齐卡片', text: '', width: scenario.width, height: scenario.height };
+      await chrome.storage.local.set({ tabcat: { ...tabcat, iconSize: scenario.iconSize, columnGap: scenario.columnGap, rowGap: scenario.rowGap, layoutColumns: scenario.columns, layoutRows: scenario.height, widgets: [widget], desktopOrder: [{ id: 'widget:aligned' }, ...tabcat.sites.map(site => ({ id: `site:${site.id}` }))] } });
+    }, scenario);
+    await expect(home.locator('#sitesPages [data-note]')).toHaveCount(1);
+    await expect.poll(() => home.evaluate(({ width, height, iconSize }) => {
+      const card = document.querySelector('#sitesPages .widget-card').getBoundingClientRect();
+      const page = document.querySelector('.sites-page:not([inert])');
+      const tiles = [...page.querySelectorAll('[data-desktop-key^="site:"]')];
+      const first = tiles[0], next = tiles[1], below = tiles.find(tile => tile.style.gridRowStart !== first.style.gridRowStart);
+      if (!below || !next) return 999;
+      const icon = first.querySelector('.site-icon').getBoundingClientRect();
+      const across = next.querySelector('.site-icon').getBoundingClientRect(), down = below.querySelector('.site-icon').getBoundingClientRect();
+      const expectedWidth = icon.width + (width - 1) * (across.x - icon.x);
+      const expectedHeight = icon.height + (height - 1) * (down.y - icon.y);
+      const expectedLeft = page.getBoundingClientRect().left + icon.left - first.getBoundingClientRect().left;
+      return Math.max(Math.abs(card.width - expectedWidth), Math.abs(card.height - expectedHeight), Math.abs(card.top - icon.top), Math.abs(card.left - expectedLeft));
+    }, scenario)).toBeLessThan(1);
+  }
+});
+
+test('weather cache survives new tabs, keeps offline readings and changes at sunset without fetching', async ({ extension }, testInfo) => {
+  const { home, context, worker, id } = extension;
+  const base = Date.parse('2026-10-10T12:05:00Z') / 1000;
+  await context.addInitScript(time => { window.weatherTestNow = time; Date.now = () => window.weatherTestNow; }, base * 1000);
+  await home.reload();
+  let ipCalls = 0, weatherCalls = 0, offline = false;
+  await context.route('https://ipwho.is/**', route => {
+    ipCalls++;
+    return offline ? route.abort() : route.fulfill({ json: { success: true, city: '杭州', latitude: 30.29, longitude: 120.16 } });
+  });
+  await context.route('https://api.open-meteo.com/**', route => {
+    weatherCalls++;
+    return offline ? route.abort() : route.fulfill({ json: { utc_offset_seconds: 0, current: { temperature_2m: 24, weather_code: 0, is_day: 1, relative_humidity_2m: 65, time: base }, daily: { time: [base - 43500, base + 42900], sunrise: [base - 3600, base + 82800], sunset: [base + 10, base + 86410] } } });
+  });
+  await addTool(home, 'weather');
+  const card = home.locator('#sitesPages .widget-weather');
+  await expect(card).toContainText('24°'); await expect(card).not.toHaveClass(/weather-night/);
+  await expect(card.locator('.weather-sun')).toBeVisible();
+  expect(ipCalls).toBe(1); expect(weatherCalls).toBe(1);
+  await home.evaluate(time => { window.weatherTestNow = time; document.dispatchEvent(new Event('visibilitychange')); }, (base + 30) * 1000);
+  await expect(card).toHaveClass(/weather-night/); await expect(card.locator('.weather-moon')).toBeVisible(); await expect(card.locator('.weather-sun')).toBeHidden();
+  expect(weatherCalls).toBe(1);
+  await home.reload(); await expect(card).toContainText('24°');
+  expect(ipCalls).toBe(1); expect(weatherCalls).toBe(1);
+  const other = await context.newPage(); await other.goto(`chrome-extension://${id}/newtab.html`);
+  await expect(other.locator('#sitesPages .widget-weather')).toContainText('24°'); expect(ipCalls).toBe(1); expect(weatherCalls).toBe(1);
+  await other.close();
+  await worker.evaluate(async () => {
+    const { tabcatWeatherCacheV1: cache } = await chrome.storage.local.get('tabcatWeatherCacheV1');
+    cache.ip.at -= 900000; cache.automatic.at -= 900000;
+    Object.values(cache.readings).forEach(entry => { entry.at -= 900000; });
+    await chrome.storage.local.set({ tabcatWeatherCacheV1: cache });
+  });
+  offline = true;
+  await home.reload(); await expect(card).toContainText('24°'); await expect(card).toContainText('保留上次天气');
+  await expect(card).toContainText('更新于 10-10 12:05');
+  await expect(card.locator('[data-weather]')).not.toContainText(/正在|加载/);
+  await card.screenshot({ path: testInfo.outputPath('cached-weather-offline.png') });
+  offline = false; await card.locator('[data-weather-refresh]').click();
+  await expect.poll(() => weatherCalls).toBe(2);
+  await expect(card.locator('[data-weather]')).not.toHaveAttribute('aria-busy', 'true');
+  await expect(card.locator('.weather-cache-state')).toHaveCount(0);
 });
