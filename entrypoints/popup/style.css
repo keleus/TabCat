@@ -4,7 +4,7 @@ html, body { width: 360px; margin: 0; background: #f8f9fc; }
 html { height: 490px; }
 body { min-height: 490px; }
 header { display: flex; align-items: center; gap: 9px; padding: 16px 24px; border-bottom: 1px solid #e8eaf1; }
-.brand-mark { display: grid; place-items: center; width: 29px; height: 29px; color: white; border-radius: 9px; background: #4f8ff7; font-weight: 750; }
+.brand-mark { display: block; width: 29px; height: 29px; flex-shrink: 0; object-fit: contain; }
 strong { font-size: 14px; }.tag { margin-left: auto; color: #83899a; font-size: 11px; }
 main { padding: 12px 24px; }h1 { margin: 0 0 9px; font-size: 19px; letter-spacing: -.6px; }
 .subtitle { margin: 0 0 18px; font-size: 12px; line-height: 1.7; color: #7a8192; }

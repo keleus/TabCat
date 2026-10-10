@@ -10,7 +10,8 @@
     "zip": "wxt zip",
     "postinstall": "wxt prepare",
     "test": "node --test tests/*.test.js",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "icons": "node scripts/render-brand-icons.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",

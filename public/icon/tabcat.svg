@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">TabCat 猫猫简笔画</title>
+  <desc id="desc">黑白线条勾勒的小猫头像，竖着双耳，圆眼睛，带着小小的微笑和胡须。</desc>
+  <metadata>Copyright (c) 2026 keleus &lt;jen.hs@outlook.com&gt;. MIT License.</metadata>
+
+  <!-- A white face keeps the monochrome drawing legible on dark backgrounds. -->
+  <g stroke="#222222" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M43 119C38 97 35 61 40 35C41 30 45 29 49 33L91 70C114 64 142 64 165 70L207 33C211 29 215 30 216 35C221 61 218 97 213 119C224 133 229 149 227 165C223 202 184 226 128 226C72 226 33 202 29 165C27 149 32 133 43 119Z" fill="#FFFFFF"/>
+    <path d="M58 62L62 89M198 62L194 89" stroke-width="7"/>
+    <path d="M128 164V176C122 187 109 187 103 179M128 176C134 187 147 187 153 179" stroke-width="7"/>
+    <path d="M57 153L16 144M56 173L18 180M199 153L240 144M200 173L238 180" stroke-width="7"/>
+  </g>
+  <ellipse cx="87" cy="137" rx="7" ry="10" fill="#222222"/>
+  <ellipse cx="169" cy="137" rx="7" ry="10" fill="#222222"/>
+  <path d="M120 158Q128 154 136 158Q138 161 128 168Q118 161 120 158Z" fill="#222222"/>
+</svg>
