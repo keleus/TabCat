@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-CN" class="booting">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>TabCat</title>
+  <script src="/newtab-startup.js"></script>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="wallpaper-frame" aria-hidden="true"><div class="wallpaper-layer"></div></div>
+  <div class="wallpaper-frost" aria-hidden="true"></div>
+  <div class="wallpaper-shade" aria-hidden="true"></div>
+  <nav id="bookmarkBar" class="bookmark-bar" aria-label="书签栏" hidden>
+    <div id="bookmarkBarItems" class="bookmark-bar-items"></div>
+    <button id="manageBookmarks" class="bookmark-manager" aria-label="管理 Chrome 书签" title="管理 Chrome 书签"><span data-icon="bookmark"></span></button>
+  </nav>
+  <div id="bookmarkFolderMenu" class="bookmark-folder-menu" role="group" aria-label="书签文件夹" hidden></div>
+  <nav class="corner-tools" aria-label="首页工具">
+    <button class="quiet-button" id="editDesktopButton" aria-label="编辑桌面" title="编辑桌面" data-icon="edit"></button>
+    <button class="quiet-button" id="addWidgetButton" aria-label="添加小组件" title="添加小组件" data-icon="layout"></button>
+    <button class="quiet-button" id="addSiteButton" data-edit-only hidden aria-label="添加网站" title="添加网站" data-icon="plus"></button>
+    <button class="editing-done" id="finishEditing" data-edit-only hidden><span data-icon="check"></span>完成编辑</button>
+    <button class="quiet-button" id="settingsButton" aria-label="打开设置" title="设置" data-icon="settings"></button>
+  </nav>
+
+  <p id="editingHint" class="editing-hint" data-edit-only hidden>拖到边缘排序 · 拖到中心合并文件夹 · Alt + 方向键移动 · Esc 完成</p>
+  <main class="app-shell">
+    <div class="desktop-content">
+      <section class="hero" aria-label="日期与时间" hidden>
+        <time class="clock" id="clock">--:--</time>
+        <div class="date-line"><span id="dateText"></span><span class="separator">·</span><span id="lunarText"></span></div>
+      </section>
+      <form class="search" id="searchForm" role="search">
+        <button class="engine-button" id="engineButton" type="button" aria-label="切换搜索引擎" aria-expanded="false">
+          <span id="engineIcon">G</span><span data-icon="chevronDown"></span>
+        </button>
+        <input id="searchInput" type="search" autocomplete="off" placeholder="搜索，或输入网址" aria-label="搜索内容" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestionList" />
+        <button class="search-button" type="submit" aria-label="搜索"><span data-icon="search"></span></button>
+        <ul class="suggestions" id="suggestionList" role="listbox" aria-label="搜索建议" hidden></ul>
+        <div class="engine-menu" id="engineMenu" hidden></div>
+      </form>
+      <section class="sites-section" aria-label="常用网站">
+        <button class="page-arrow previous" id="previousPage" aria-label="上一页" data-icon="arrow" hidden></button>
+        <div class="sites-viewport" id="sitesViewport"><div class="sites-pages" id="sitesPages"></div></div>
+        <button class="page-arrow next" id="nextPage" aria-label="下一页" data-icon="arrow" hidden></button>
+        <div class="pagination" id="pagination" aria-label="站点分页"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="desktop-footer">
+    <div class="wallpaper-tools">
+      <button class="quiet-button wallpaper-name" id="wallpaperButton" title="选择壁纸" aria-label="选择壁纸"><span data-icon="wallpaper"></span><span id="wallpaperName">远山</span></button>
+      <button class="quiet-button" id="nextWallpaper" title="切换背景" aria-label="切换背景" data-icon="shuffle"></button>
+    </div>
+  </footer>
+
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="settings-panel" id="settingsPanel" role="dialog" aria-modal="true" aria-label="设置" aria-hidden="true" inert>
+    <header class="panel-header"><div><span class="panel-brand">TabCat</span><h1>偏好设置</h1></div><button class="icon-button" id="closeSettings" aria-label="关闭设置" data-icon="close"></button></header>
+    <div class="settings-body">
+      <nav class="settings-tabs" aria-label="设置分类">
+        <button class="active" data-tab="appearance"><span data-icon="appearance"></span>图标外观</button>
+        <button data-tab="sites"><span data-icon="layout"></span>桌面布局</button>
+        <button data-tab="search"><span data-icon="search"></span>搜索设置</button>
+        <button data-tab="wallpaper"><span data-icon="wallpaper"></span>壁纸背景</button>
+        <button data-tab="time"><span data-icon="clock"></span>时间日期</button>
+        <button data-tab="data"><span data-icon="backup"></span>备份恢复</button>
+      </nav>
+      <div class="panel-content">
+        <section class="settings-page active" data-page="appearance">
+          <h2>图标外观</h2><p class="helper">从一个圆角开始，调整成你喜欢的样子。</p>
+          <div class="appearance-preview" aria-hidden="true"><span class="preview-icon">A</span><span class="preview-icon">B</span><span class="preview-icon">C</span></div>
+          <div class="field"><label for="iconSize">图标大小 <output id="iconSizeValue"></output></label><input id="iconSize" type="range" min="44" max="128" step="2"></div>
+          <div class="field"><label for="iconRadius">图标圆角 <output id="iconRadiusValue"></output></label><input id="iconRadius" type="range" min="0" max="50" step="1"></div>
+          <p class="helper">圆角按图标边长计算：0% 为直角，25% 为圆角方形，50% 为圆形。</p>
+          <h3>图标内文字</h3><p class="helper">仅调整文字图标和加载失败时的文字，不改变网站图片或图标下方名称。</p>
+          <div class="field"><label for="iconTextSize">文字字号 <output id="iconTextSizeValue"></output></label><input id="iconTextSize" type="range" min="10" max="72" step="1"></div>
+          <div class="field"><label for="iconTextFont">文字字体</label><select id="iconTextFont"><option value="system">系统字体</option><option value="serif">衬线字体</option><option value="rounded">圆体风格</option><option value="mono">等宽字体</option></select></div>
+          <div class="field"><label for="iconTextWeight">文字字重</label><select id="iconTextWeight"><option value="300">纤细</option><option value="400">常规</option><option value="500">中等</option><option value="600">半粗</option><option value="700">粗体</option><option value="800">加粗</option></select></div>
+          <div class="field"><label for="iconTextColorMode">文字颜色</label><select id="iconTextColorMode"><option value="auto">自动黑白 · 根据底色亮度</option><option value="custom">自定义颜色</option></select><input id="iconTextColor" type="color" aria-label="自定义文字颜色"></div>
+          <div class="field"><label for="iconOpacity">图标不透明度 <output id="iconOpacityValue"></output></label><input id="iconOpacity" type="range" min="30" max="100" step="5"></div>
+          <div class="field inline"><label for="showSiteNames">显示图标名称</label><label class="switch"><input id="showSiteNames" aria-label="显示图标名称" type="checkbox"><span></span></label></div>
+          <div class="field"><label for="labelColor">桌面文字颜色</label><select id="labelColor"><option value="auto">跟随壁纸</option><option value="light">白色</option><option value="dark">深色</option></select></div>
+          <div class="field"><label for="theme">设置面板主题</label><select id="theme"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select></div>
+          <div class="field"><label for="fontFamily">字体</label><select id="fontFamily"><option value="system">系统字体</option><option value="serif">衬线字体</option><option value="rounded">圆体风格</option><option value="mono">等宽字体</option></select></div>
+          <div class="field"><label for="accentColor">强调色</label><div class="color-field"><input id="accentColor" type="color"><span id="accentValue"></span></div></div>
+        </section>
+        <section class="settings-page" data-page="sites">
+          <h2>桌面布局</h2><p class="helper">在桌面编辑快捷方式、文件夹和小组件。</p>
+          <div class="field inline"><label for="showBookmarksBar">显示书签栏</label><label class="switch"><input id="showBookmarksBar" aria-label="显示书签栏" type="checkbox"><span></span></label></div>
+          <p class="helper">仅在新标签页顶部显示 Chrome 书签栏中的网站和文件夹；内容随浏览器书签同步。</p>
+          <div class="field"><label for="bookmarkBarTransparency">书签栏透明度 <output id="bookmarkBarTransparencyValue"></output></label><input id="bookmarkBarTransparency" type="range" min="0" max="100" step="5"></div>
+          <p class="helper">默认磨砂半透明；数值越高，透出的壁纸越多。</p>
+          <div class="field-row"><div class="field"><label for="layoutColumns">网格列数</label><select id="layoutColumns"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></div><div class="field"><label for="layoutRows">每页行数</label><select id="layoutRows"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div></div>
+          <div class="field"><label for="columnGap">列间距 <output id="columnGapValue"></output></label><input id="columnGap" type="range" min="16" max="80" step="2"></div>
+          <div class="field"><label for="rowGap">行间距 <output id="rowGapValue"></output></label><input id="rowGap" type="range" min="16" max="72" step="2"></div>
+          <p class="helper">桌面内容自动上下居中，随窗口高度适配；首页固定在一屏内。</p>
+          <div class="field"><label for="shortcutOpenInNewTab">快捷方式打开方式</label><select id="shortcutOpenInNewTab"><option value="true">新标签页</option><option value="false">当前标签页</option></select></div>
+          <button class="secondary-button" id="editDesktopSettings">编辑桌面</button>
+        </section>
+        <section class="settings-page" data-page="search">
+          <h2>搜索设置</h2><p class="helper">少一点干扰，更快到达你想去的地方。</p>
+          <div class="field inline"><label for="showSearch">显示搜索框</label><label class="switch"><input id="showSearch" aria-label="显示搜索框" type="checkbox"><span></span></label></div>
+          <div class="field inline"><label for="openInNewTab">在新标签页打开链接</label><label class="switch"><input id="openInNewTab" aria-label="在新标签页打开链接" type="checkbox"><span></span></label></div>
+          <div class="field"><label for="searchWidth">搜索框宽度 <output id="searchWidthValue"></output></label><input id="searchWidth" type="range" min="360" max="760" step="20"></div>
+          <div class="field"><label for="searchHeight">搜索框高度 <output id="searchHeightValue"></output></label><input id="searchHeight" type="range" min="40" max="64" step="2"></div>
+          <div class="field"><label for="searchRadius">搜索框圆角 <output id="searchRadiusValue"></output></label><input id="searchRadius" type="range" min="0" max="32" step="2"></div>
+          <div class="field"><label for="searchOpacity">搜索框不透明度 <output id="searchOpacityValue"></output></label><input id="searchOpacity" type="range" min="60" max="100" step="5"></div>
+          <div class="field inline"><label for="searchSuggestions">搜索推荐补全</label><label class="switch"><input id="searchSuggestions" aria-label="搜索推荐补全" type="checkbox"><span></span></label></div>
+          <p class="helper">输入内容将发送给当前搜索引擎。支持 Google、Bing、百度；↑ ↓ 选择，Enter 搜索，Esc 关闭。</p>
+          <h3>搜索引擎</h3><div class="sortable-list" id="engineList"></div><button class="secondary-button full" id="addEngineButton"><span data-icon="plus"></span> 添加搜索引擎</button>
+        </section>
+        <section class="settings-page" data-page="wallpaper">
+          <h2>壁纸背景</h2><p class="helper">让每次打开新标签页，都有一个好心情。</p>
+          <div id="wallpaperChoices" class="wallpaper-grid" aria-label="内置背景"></div>
+          <div class="field"><label for="background">背景来源</label><select id="background"><option value="bing">Bing 每日壁纸</option><option value="fjord">远山 · 内置壁纸</option><option value="bing-gallery">Bing 最近几日 · 轮换图库</option><option value="picsum">Picsum · 摄影图库</option><option value="local">我的本地壁纸</option><option value="custom">在线图片地址</option></select></div>
+          <div id="bingControls" hidden><p class="helper" id="bingStatus">每天自动更新，并保留上次成功获取的壁纸供离线使用。</p><button class="secondary-button full" id="refreshBing">刷新今日壁纸</button></div>
+          <div id="galleryControls" hidden>
+            <div class="field"><label for="wallpaperRotation">轮换频率</label><select id="wallpaperRotation"><option value="daily">每天换一张</option><option value="hourly">每小时换一张</option><option value="newtab">每次新标签页</option><option value="manual">仅手动切换</option></select></div>
+            <p class="helper" id="galleryStatus" role="status">横向摄影壁纸，自动保存最近一张，断网也可使用。</p>
+            <button class="secondary-button full" id="refreshGallery">换一张照片</button>
+          </div>
+          <p class="helper"><a id="wallpaperCredit" target="_blank" rel="noopener noreferrer" hidden>查看图片来源</a></p>
+          <button class="secondary-button full" id="uploadWallpaper">从电脑选择图片</button><input id="wallpaperFile" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+          <p class="helper" id="localWallpaperName">支持 JPG、PNG、WebP，图片仅保存在本机。</p>
+          <div class="field" id="backgroundUrlField" hidden><label for="backgroundUrl">图片网址</label><input id="backgroundUrl" type="url" placeholder="https://example.com/wallpaper.jpg"></div>
+          <div class="field"><label for="backgroundFrost">白色磨砂浓度 <output id="backgroundFrostValue"></output></label><input id="backgroundFrost" type="range" min="0" max="60" step="2"></div>
+          <div class="field"><label for="backgroundDim">黑色磨砂浓度（压暗） <output id="backgroundDimValue"></output></label><input id="backgroundDim" type="range" min="0" max="70" step="5"></div>
+          <div class="field"><label for="backgroundBlur">背景模糊 <output id="backgroundBlurValue"></output></label><input id="backgroundBlur" type="range" min="0" max="40" step="1"></div>
+          <p class="helper">三项默认均为 0，显示原始壁纸；可单独调整白色、黑色叠层，也可配合模糊使用。</p>
+        </section>
+        <section class="settings-page" data-page="time">
+          <h2>时间日期</h2><p class="helper">需要的时候，再让时钟出现在桌面。</p>
+          <div class="field inline"><label for="showClock">显示时钟与日期</label><label class="switch"><input id="showClock" aria-label="显示时钟与日期" type="checkbox"><span></span></label></div>
+          <div class="field"><label for="timezone">时区</label><select id="timezone"></select></div>
+          <div class="field inline"><label for="hour24">24 小时制</label><label class="switch"><input id="hour24" aria-label="24 小时制" type="checkbox"><span></span></label></div>
+          <div class="field"><label for="dateStyle">日期样式</label><select id="dateStyle"><option value="cn">10月9日 · 星期五</option><option value="full">2026年10月9日 星期五</option><option value="iso">2026-10-09 · 星期五</option></select></div>
+          <div class="field inline"><label for="showLunar">显示农历</label><label class="switch"><input id="showLunar" aria-label="显示农历" type="checkbox"><span></span></label></div>
+          <div class="field"><label for="clockSize">时间字号 <output id="clockSizeValue"></output></label><input id="clockSize" type="range" min="48" max="120" step="2"></div>
+          <div class="field"><label for="clockWeight">时间字重</label><select id="clockWeight"><option value="300">纤细</option><option value="400">常规</option><option value="500">中等</option><option value="600">粗体</option></select></div>
+        </section>
+        <section class="settings-page" data-page="data">
+          <h2>备份与恢复</h2><p class="helper">网站、文件夹、小组件、搜索引擎、布局和本地壁纸一起保存。</p>
+          <div class="data-card"><h3>导出备份</h3><p>保存一份 TabCat 配置文件，方便换电脑或恢复。</p><button class="secondary-button" id="exportData">导出 JSON 文件</button></div>
+          <div class="data-card"><h3>从备份恢复</h3><p>支持 TabCat JSON、Infinity .infinity 和 iTab JSON。先预览兼容内容，再确认导入。</p><button class="secondary-button" id="importData">选择备份文件</button><input id="backupFile" type="file" accept="application/json,.json,.infinity,.itab,.txt" hidden></div>
+          <button class="danger-button" id="resetButton">恢复默认设置</button>
+          <p class="helper data-note">数据保存在当前浏览器，无需登录。</p>
+        </section>
+      </div>
+    </div>
+  </aside>
+
+  <div class="context-menu" id="siteContextMenu" role="menu" hidden>
+    <button role="menuitem" data-context-action="open">在新标签页打开 <span data-icon="external"></span></button>
+    <button role="menuitem" data-context-action="edit">编辑快捷方式 <span data-icon="edit"></span></button>
+    <button role="menuitem" data-context-action="delete" class="danger-text">移除快捷方式 <span data-icon="trash"></span></button>
+    <button role="menuitem" data-context-action="mode">进入编辑模式 <span data-icon="edit"></span></button>
+    <button role="menuitem" data-context-action="add">添加网站 <span data-icon="plus"></span></button>
+    <button role="menuitem" data-context-action="wallpaper">更换壁纸 <span data-icon="wallpaper"></span></button>
+    <button role="menuitem" data-context-action="settings">偏好设置 <span data-icon="settings"></span></button>
+  </div>
+
+  <dialog class="modal site-library-modal" id="siteLibraryModal" aria-labelledby="libraryTitle">
+    <div class="modal-header"><div><h2 id="libraryTitle">添加到桌面</h2><p class="helper">图标和小组件，点击添加或拖到桌面。</p></div><button type="button" class="icon-button" id="closeLibrary" aria-label="关闭候选栏" data-icon="close"></button></div>
+    <div class="library-tabs" role="group" aria-label="候选类型"><button type="button" data-library-kind="all" aria-pressed="true">全部</button><button type="button" data-library-kind="sites" aria-pressed="false">图标</button><button type="button" data-library-kind="widgets" aria-pressed="false">小组件</button></div>
+    <label class="library-search"><span data-icon="search"></span><input id="librarySearch" type="search" aria-label="搜索候选项" placeholder="搜索图标、网址或小组件" autocomplete="off"></label>
+    <div class="library-categories" id="libraryCategories" role="group" aria-label="快捷方式分类"></div>
+    <p id="libraryCount" class="helper"></p>
+    <div class="library-results"><section id="libraryWidgets"><h3>小组件</h3><div class="widget-gallery"></div></section><section id="librarySites"><h3>图标</h3><div id="libraryGrid" class="library-grid"></div></section><div id="libraryEmpty" class="library-empty" hidden><strong>没有找到匹配的候选项</strong><p>试试其他关键词或分类，也可以手动添加网址。</p></div></div>
+    <div class="library-footer"><p id="libraryStatus" class="helper" role="status"></p><div><button type="button" class="secondary-button" id="libraryCustom">自定义网址</button><button type="button" class="primary-button" id="libraryDone">完成</button></div></div>
+  </dialog>
+
+  <dialog class="modal form-modal" id="siteModal">
+    <form method="dialog" id="siteForm">
+      <div class="modal-header"><h2 id="siteModalTitle">添加网站</h2><button class="icon-button" value="cancel" formnovalidate aria-label="关闭" data-icon="close"></button></div>
+      <div class="modal-body">
+        <div class="site-form-intro"><span id="sitePreview" class="site-preview">A</span><p>把常用的网站<br>放在触手可及的地方。</p></div>
+        <div class="field"><label for="siteName">网站名称</label><input id="siteName" required maxlength="80" placeholder="例如：少数派"></div>
+        <div class="field"><label for="siteUrl">网址</label><input id="siteUrl" required placeholder="https://sspai.com"></div>
+        <div class="icon-source-options" role="group" aria-label="图标来源">
+          <button type="button" data-icon-source="website" aria-pressed="true">网站图标</button>
+          <button type="button" data-icon-source="text" aria-pressed="false">单字图标</button>
+          <button type="button" data-icon-source="custom" aria-pressed="false">自定义图片</button>
+        </div>
+        <div class="icon-status-row"><p id="siteIconStatus" class="helper" role="status"></p><button type="button" class="secondary-button" id="refreshSiteIcon">重新获取</button></div>
+        <div id="siteTextFields" hidden><div class="field"><label for="siteIconText">图标文字</label><input id="siteIconText" placeholder="默认使用名称首字"></div></div>
+        <div id="siteCustomFields" hidden><div class="field"><label for="siteIcon">图标图片网址</label><input id="siteIcon" placeholder="https://example.com/icon.png"></div></div>
+        <div class="field"><label for="siteColor">图标底色</label><input id="siteColor" type="color"></div>
+        <div class="image-controls">
+          <div class="field"><label for="siteImageScale">图片内部大小 <output id="siteImageScaleValue">100%</output></label><input id="siteImageScale" type="range" min="40" max="160" step="5" value="100"></div>
+          <div class="field"><label for="siteImageFit">图片显示方式</label><select id="siteImageFit"><option value="cover">铺满图标 · 超出部分裁切</option><option value="contain">完整显示 · 保留图片比例</option></select></div>
+        </div>
+        <details class="advanced-fields"><summary>自定义图标与文字</summary>
+
+          <div class="field-row"><div class="field"><label for="siteIconTextSize">文字字号 px</label><input id="siteIconTextSize" type="number" min="10" max="72" placeholder="跟随全局"></div><div class="field"><label for="siteIconTextColor">文字颜色</label><input id="siteIconTextColor" placeholder="自动黑白 / 跟随全局 / #ffffff" maxlength="7"></div></div>
+          <div class="field-row"><div class="field"><label for="siteIconTextFont">文字字体</label><select id="siteIconTextFont"><option value="">跟随全局</option><option value="system">系统字体</option><option value="serif">衬线字体</option><option value="rounded">圆体风格</option><option value="mono">等宽字体</option></select></div><div class="field"><label for="siteIconTextWeight">文字字重</label><select id="siteIconTextWeight"><option value="">跟随全局</option><option value="300">纤细</option><option value="400">常规</option><option value="500">中等</option><option value="600">半粗</option><option value="700">粗体</option><option value="800">加粗</option></select></div></div>
+          <div class="field-row compact-fields"><div class="field"><label for="siteIconSize">大小</label><input id="siteIconSize" type="number" min="36" max="128" placeholder="跟随全局"></div><div class="field"><label for="siteIconRadius">圆角 %</label><input id="siteIconRadius" type="number" min="0" max="50" placeholder="跟随全局"></div><div class="field"><label for="siteLabelSize">名称字号</label><input id="siteLabelSize" type="number" min="10" max="22" placeholder="13"></div></div>
+        </details>
+      </div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel" formnovalidate>取消</button><button class="primary-button" id="saveSiteButton" value="default">保存</button></div>
+    </form>
+  </dialog>
+  <dialog class="modal form-modal" id="engineModal">
+    <form method="dialog" id="engineForm">
+      <div class="modal-header"><h2>添加搜索引擎</h2><button class="icon-button" value="cancel" formnovalidate aria-label="关闭" data-icon="close"></button></div>
+      <div class="modal-body">
+        <div class="field"><label for="engineName">名称</label><input id="engineName" required maxlength="20" placeholder="例如：Bing"></div>
+        <div class="field"><label for="engineUrl">搜索地址</label><input id="engineUrl" required placeholder="https://example.com/search?q=%s"><small>使用 %s 代替搜索关键词</small></div>
+      </div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel" formnovalidate>取消</button><button class="primary-button" value="default">添加</button></div>
+    </form>
+  </dialog>
+  <dialog class="modal import-preview" id="importPreviewModal" aria-labelledby="importPreviewTitle">
+    <h2 id="importPreviewTitle">确认导入</h2>
+    <p id="importSource" class="helper"></p>
+    <p id="importSummary"></p><p id="importMode" class="helper"></p>
+    <ul id="importWarnings" class="import-warnings" hidden></ul>
+    <div class="modal-actions"><button class="secondary-button" id="cancelImport">取消</button><button class="primary-button" id="confirmImport">确认导入</button></div>
+  </dialog>
+  <dialog class="modal" id="resetModal" aria-labelledby="resetTitle" aria-describedby="resetDescription">
+    <form method="dialog" id="resetForm">
+      <h2 id="resetTitle">恢复默认设置</h2>
+      <p id="resetDescription">确定恢复所有默认设置？自定义网站也会被移除。</p>
+      <div class="modal-actions"><button class="secondary-button" value="cancel" autofocus>取消</button><button class="danger-button" value="confirm">确认恢复</button></div>
+    </form>
+  </dialog>
+  <div id="status" role="status" class="toast" hidden></div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

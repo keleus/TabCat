@@ -1,0 +1,25 @@
+{
+  "name": "tabcat",
+  "description": "TabCat 新标签页：时钟、搜索与固定快捷方式",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "postinstall": "wxt prepare",
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "linkedom": "^0.18.13",
+    "wxt": "^0.21.4"
+  },
+  "dependencies": {
+    "@iconify-icons/lucide": "^2.0.18",
+    "@iconify-icons/simple-icons": "^2.0.6"
+  },
+  "license": "MIT"
+}

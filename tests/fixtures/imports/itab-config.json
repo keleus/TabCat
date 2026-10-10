@@ -1,0 +1,74 @@
+{
+  "baseConfig": {
+    "lang": "",
+    "searchEngine": [
+      { "key": "sogou", "title": "搜狗", "href": "https://www.sogou.com/web?query=" },
+      { "key": "duckduckgo", "title": "DuckDuckGo", "href": "https://duckduckgo.com/?q=" }
+    ],
+    "useSearch": "duckduckgo",
+    "search": { "show": true, "history": false, "height": 46, "radius": 23, "bgColor": 0.5 },
+    "theme": { "mode": "dark", "system": false, "color": "#1890ff" },
+    "sidebar": { "placement": "left", "autoHide": false, "width": 50 },
+    "wallpaper": {
+      "mask": 0.2,
+      "blur": 2,
+      "type": 1,
+      "name": "itab sample",
+      "src": "https://files.itab.link/itab/defaultWallpaper/defaultWallpaper.webp",
+      "switchBtn": false
+    },
+    "layout": { "view": "widget", "yiyan": true },
+    "time": { "show": true, "size": 70, "fontWeight": 400, "hour24": true, "lunar": "inline" },
+    "open": { "searchBlank": true, "iconBlank": true },
+    "icon": { "name": 1, "iconRadius": 18, "iconSize": 60, "iconX": 30, "iconY": 30, "unit": "px" },
+    "topSearch": [{ "name": "百度", "id": "Jb0vmloB1G" }]
+  },
+  "navConfig": [
+    {
+      "id": "page-1",
+      "children": [
+        {
+          "id": "itab-github",
+          "url": "https://www.itab.link/",
+          "type": "icon",
+          "name": "GitHub",
+          "src": "https://github.githubassets.com/favicons/favicon.png",
+          "size": "1x1"
+        },
+        {
+          "id": "itab-folder",
+          "url": "itab://folder",
+          "type": "folder",
+          "name": "学习",
+          "children": [
+            {
+              "id": "itab-mdn",
+              "url": "https://developer.mozilla.org/",
+              "type": "icon",
+              "name": "MDN",
+              "src": "https://developer.mozilla.org/favicon-48x48.cbbd161b.png",
+              "size": "1x1"
+            }
+          ]
+        },
+        {
+          "id": "itab-note-widget",
+          "type": "component",
+          "component": "notes",
+          "name": "笔记"
+        },
+        {
+          "id": "itab-invalid",
+          "url": "javascript:alert(1)",
+          "type": "icon",
+          "name": "危险地址"
+        }
+      ]
+    }
+  ],
+  "notes": [{ "id": "note-1", "title": "不导入的笔记", "content": "只支持书签和可映射设置" }],
+  "todo": [{ "id": "todo-1", "text": "不导入的待办", "done": false }],
+  "todoFolder": [{ "id": "in-plan", "name": "待办事项" }],
+  "stocks": [],
+  "exchangerate": { "icon": "", "config": {} }
+}

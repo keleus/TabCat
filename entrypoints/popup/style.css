@@ -1,0 +1,26 @@
+:root { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; color: #242936; color-scheme: light dark; }
+* { box-sizing: border-box; }
+html, body { width: 360px; margin: 0; background: #f8f9fc; }
+html { height: 490px; }
+body { min-height: 490px; }
+header { display: flex; align-items: center; gap: 9px; padding: 16px 24px; border-bottom: 1px solid #e8eaf1; }
+.brand-mark { display: grid; place-items: center; width: 29px; height: 29px; color: white; border-radius: 9px; background: #4f8ff7; font-weight: 750; }
+strong { font-size: 14px; }.tag { margin-left: auto; color: #83899a; font-size: 11px; }
+main { padding: 12px 24px; }h1 { margin: 0 0 9px; font-size: 19px; letter-spacing: -.6px; }
+.subtitle { margin: 0 0 18px; font-size: 12px; line-height: 1.7; color: #7a8192; }
+label { display: block; margin: 12px 0 6px; font-size: 12px; font-weight: 600; }
+input { width: 100%; height: 42px; padding: 0 12px; border: 1px solid #dfe3ed; border-radius: 7px; background: white; color: inherit; outline: none; font: inherit; font-size: 13px; }
+input:focus { border-color: #4f8ff7; box-shadow: 0 0 0 3px #4f8ff718; }
+#status { height: 40px; overflow-y: auto; margin: 12px 0; color: #777f92; font-size: 12px; line-height: 1.6; }
+button { width: 100%; min-height: 43px; border: 0; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: #4f8ff7; color: white; }
+button:hover { filter: brightness(.96); }button:disabled { opacity: .55; cursor: default; }
+.secondary { margin-top: 10px; color: #5d657b; background: #edf0f7; }.secondary span { margin-left: 8px; }
+footer { padding: 0 24px 10px; color: #969bab; font-size: 10px; text-align: center; }
+:focus-visible { outline: 2px solid #4f8ff7; outline-offset: 3px; }
+@media (prefers-color-scheme: dark) {
+  :root { color: #f1f2f6; }html, body { background: #1c1f29; }header { border-color: #343844; }
+  input { background: #262b37; border-color: #3d4454; }.secondary { background: #2b3040; color: #c5cad8; }
+}
+
+.secondary { display: flex; align-items: center; justify-content: center; }
+.secondary svg { display: block; width: 15px; height: 15px; }

@@ -1,0 +1,47 @@
+{
+  "tieba": {
+    "kind": "page-logo",
+    "url": "https://tb3.bdstatic.com/tb/pc/pc-main-core/static/img/home_icon.8190bc67.png",
+    "page": "https://tieba.baidu.com/"
+  },
+  "kuaishou": {
+    "kind": "page-logo",
+    "url": "https://p66-plat.wskwai.com/kos/nlav111422/ks-web/images/logo-text.svg",
+    "page": "https://www.kuaishou.com/"
+  },
+  "feishu": {
+    "kind": "page-logo",
+    "url": "https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/eff71c9398c04ebd8452d748646fc1e8.png~tplv-jbbdkfciu3-png:0:0.png",
+    "page": "https://www.feishu.cn/"
+  },
+  "yuanbao": {
+    "kind": "page-logo",
+    "url": "https://static.yuanbao.tencent.com/modern/_next/static/media/logo.c0c6ebfb.png",
+    "page": "https://yuanbao.tencent.com/"
+  },
+  "doubao": {
+    "kind": "page-logo",
+    "url": "https://lf-flow-web-cdn.doubao.com/obj/flow-doubao/doubao/web/doubao_avatar_new.png",
+    "page": "https://www.doubao.com/chat/"
+  },
+  "12306": {
+    "kind": "page-logo",
+    "url": "https://www.12306.cn/index/images/logo@2x.png",
+    "page": "https://www.12306.cn/"
+  },
+  "tmall": {
+    "kind": "page-logo",
+    "url": "https://img.alicdn.com/imgextra/i4/O1CN01Se8pZU1ruzNvEEwH9_!!6000000005692-2-tps-480-144.png",
+    "page": "https://www.tmall.com/"
+  },
+  "jd": {
+    "kind": "page-logo",
+    "url": "https://m.360buyimg.com/babel/jfs/t20280609/301570/22/13321/9092/6847d785F60001ad9/dc6b373197ff19a8.png",
+    "page": "https://www.jd.com/"
+  },
+  "ctrip": {
+    "kind": "page-logo",
+    "url": "https://bd-s.tripcdn.cn/modules/nfes/pc-home/logo.dea30d575d812c738b4683ba80f3ff84.png",
+    "page": "https://www.ctrip.com/"
+  }
+}

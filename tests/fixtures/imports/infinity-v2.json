@@ -1,0 +1,99 @@
+{
+  "version": "v2",
+  "browserEnv": "chrome",
+  "editionEnv": "pro",
+  "backupType": "local",
+  "time": 1780000000000,
+  "extVersion": "11.0.41",
+  "data": {
+    "site": {
+      "sites": [
+        [
+          {
+            "uuid": "site-github",
+            "id": "siteId-github",
+            "name": "GitHub",
+            "target": "https://github.com/",
+            "type": "web",
+            "bgType": "image",
+            "bgImage": "https://infinityicon.infinitynewtab.com/user-share-icon/github.png"
+          },
+          {
+            "uuid": "folder-dev",
+            "id": "siteId-folder-dev",
+            "name": "开发工具",
+            "type": "folder",
+            "children": [
+              {
+                "uuid": "site-mdn",
+                "id": "siteId-mdn",
+                "name": "MDN",
+                "target": "https://developer.mozilla.org/",
+                "type": "web",
+                "bgType": "image",
+                "bgImage": "https://developer.mozilla.org/favicon-48x48.cbbd161b.png"
+              },
+              {
+                "uuid": "site-internal-settings",
+                "id": "siteId-internal-settings",
+                "name": "Infinity 设置",
+                "target": "infinity://settings",
+                "type": "app"
+              }
+            ]
+          },
+          {
+            "uuid": "site-bad",
+            "id": "siteId-bad",
+            "name": "危险地址",
+            "target": "javascript:alert(1)",
+            "type": "web"
+          }
+        ]
+      ],
+      "redirectVersion": "",
+      "updatedIconVersion": "11.0.39"
+    },
+    "setting": {
+      "setting": {
+        "notice": { "gmail": false, "gmailVoice": false },
+        "link": { "icon": true, "search": false },
+        "view": { "pagin": false, "scaleSide": 1, "scaleMain": 1 },
+        "layout": { "row": 2, "col": 6, "rowGap": 0.2, "colGap": 0.3 },
+        "animation": { "easing": "linear" },
+        "icon": { "miniMode": false, "opacity": 1, "radius": 0.5, "scale": 0.5, "isHideIconName": false },
+        "search": { "hide": false, "radius": 0.5, "opacity": 1 },
+        "font": { "size": 15, "color": "#ffffff" }
+      }
+    },
+    "searcher": {
+      "searchEngine": {
+        "custom": [
+          {
+            "uuid": "custom-search-mdn",
+            "name": "MDN 搜索",
+            "target": "https://developer.mozilla.org/en-US/search?q="
+          }
+        ],
+        "addList": [],
+        "current": {
+          "uuid": "custom-search-mdn",
+          "name": "MDN 搜索",
+          "target": "https://developer.mozilla.org/en-US/search?q="
+        },
+        "all": []
+      }
+    },
+    "wallpaper": {
+      "type": "bing",
+      "wpSource": "bing",
+      "url": "https://img.infinitynewtab.com/bingWallpaper/bg.jpg?md5=verified",
+      "rawUrl": "https://img.infinitynewtab.com/bingWallpaper/bg.jpg?md5=verified",
+      "opacity": 40,
+      "blur": 3
+    },
+    "weather": { "list": [], "unit": "celsius" },
+    "todo": { "todoList": [] },
+    "note": { "list": [], "checkedId": "note-default" }
+  }
+}
