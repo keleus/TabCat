@@ -3,10 +3,7 @@ node_modules/
 .output/
 .wxt/
 
-# Test results and coverage
-/test-results/
-/playwright-report/
-/playwright/.cache/
+# Test coverage
 /coverage/
 
 # Local environment and credentials

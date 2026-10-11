@@ -86,21 +86,22 @@ npm run zip       # 生成可分发的扩展 ZIP
 
 ```sh
 npm test                  # URL 校验、旧数据兼容、重复添加、并发合并
-npx playwright install chromium
 npm run build
-npm run test:e2e           # 在独立临时 Chromium 配置中加载真实扩展
 ```
 
-可通过 `TABCAT_CHROMIUM_PATH` 指定已有的 Chromium 可执行文件。
+界面改动请构建后在浏览器中加载 `.output/chrome-mv3` 手动验证。
 
 ## 目录
 
 ```text
-entrypoints/newtab/    新标签页及设置
+entrypoints/newtab/    新标签页：main.js 负责启动与全局快捷键，app.js 保存共享状态与存储，
+                      其余模块按功能拆分（desktop-view 桌面与分页、sites 网站编辑、
+                      engines 搜索引擎、settings 设置面板、wallpaper 壁纸、backup 备份、
+                      context-menu 右键菜单、clock 时钟）
 entrypoints/popup/     添加当前网页的弹窗
 entrypoints/background.js  统一串行处理配置写入
 lib/                  默认配置、数据校验和存储通信
-tests/                单元测试与浏览器集成测试
+tests/                单元测试
 public/icon/          扩展图标
 wxt.config.ts         WXT / Manifest 配置
 ```
