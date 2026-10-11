@@ -1708,18 +1708,23 @@ test('desktop folders merge, rename, move out and dissolve without losing shortc
 
 test('note widgets persist, reorder with keyboard, resize, and undo removal', async ({ extension }, testInfo) => {
   const { home, worker } = extension;
+  const previousOrder = await home.locator('.desktop-tile:not([data-desktop-key="add"])').evaluateAll(tiles => tiles.map(tile => ({ id: tile.dataset.desktopKey })));
   await addTool(home, 'note', async () => { await home.locator('#widgetName').fill('今日备忘'); });
+  const addedOrder = await worker.evaluate(async () => (await chrome.storage.local.get('tabcat')).tabcat.desktopOrder);
+  expect(addedOrder.slice(0, -1)).toEqual(previousOrder);
+  expect(addedOrder.at(-1).id).toMatch(/^widget:/);
   const note = home.locator('[data-note]'); await expect(note).toBeVisible();
   await note.fill('整理设计稿\n周五发布 <script>这只是文本</script>');
   await expect.poll(() => worker.evaluate(async () => (await chrome.storage.local.get('tabcat')).tabcat.widgets[0]?.text)).toContain('周五发布');
   await home.reload(); await expect(note).toHaveValue('整理设计稿\n周五发布 <script>这只是文本</script>');
+  await showDesktopPage(home);
   await expect(home.locator('[data-note-count]')).toHaveText(`${[...'整理设计稿\n周五发布 <script>这只是文本</script>'].length} 字`);
   await home.locator('#editDesktopButton').click();
   await home.locator('[data-widget-edit]').click();
   await home.locator('#widgetSize').selectOption('4,3');
   await home.getByRole('button', { name: '保存组件', exact: true }).click();
-  const widgetTile = home.locator('.desktop-widget'); await widgetTile.focus(); await home.keyboard.press('Alt+ArrowRight');
-  await expect.poll(() => worker.evaluate(async () => (await chrome.storage.local.get('tabcat')).tabcat.desktopOrder.findIndex(item => item.id.startsWith('widget:')))).toBe(1);
+  const widgetTile = home.locator('.desktop-widget'); await widgetTile.focus(); await home.keyboard.press('Alt+ArrowLeft');
+  await expect.poll(() => worker.evaluate(async () => (await chrome.storage.local.get('tabcat')).tabcat.desktopOrder.findIndex(item => item.id.startsWith('widget:')))).toBe(previousOrder.length - 1);
   await home.locator('[data-widget-remove]').click(); await expect(note).toHaveCount(0);
   await home.locator('#status').getByRole('button', { name: '撤销' }).click(); await expect(note).toHaveValue('整理设计稿\n周五发布 <script>这只是文本</script>');
   await home.locator('#finishEditing').click();
@@ -1730,6 +1735,44 @@ test('note widgets persist, reorder with keyboard, resize, and undo removal', as
   expect(await home.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const tileBox = await widgetTile.boundingBox(); expect(tileBox.x).toBeGreaterThanOrEqual(0); expect(tileBox.x + tileBox.width).toBeLessThanOrEqual(390);
   await home.screenshot({ path: testInfo.outputPath('widget-mobile.png'), fullPage: true });
+});
+
+test('weather city dropdown stays outside dialog layout and supports keyboard selection', async ({ extension }, testInfo) => {
+  const { home, context, worker } = extension;
+  await context.route('https://ipwho.is/**', route => route.fulfill({ json: { success: true, city: '杭州', latitude: 30.29, longitude: 120.16 } }));
+  await context.route('https://api.open-meteo.com/**', route => route.fulfill({ json: { current: { temperature_2m: 24, weather_code: 0, is_day: 1 } } }));
+  await context.route('https://geocoding-api.open-meteo.com/**', route => route.fulfill({ json: { results: Array.from({ length: 20 }, (_, index) => ({ name: '杭州', admin1: `地区${index + 1}`, country: '中国', latitude: 30 + index / 10, longitude: 120 })) } }));
+  await addTool(home, 'weather');
+  await home.locator('#editDesktopButton').click(); await home.locator('[data-widget-edit]').click();
+  await home.locator('#widgetLocationMode').selectOption('manual');
+  const input = home.locator('#widgetCity'), dropdown = home.locator('#widgetCityDropdown');
+  const layout = () => home.evaluate(() => {
+    const dialog = document.querySelector('#widgetModal'), body = dialog.querySelector('.modal-body');
+    return { height: dialog.getBoundingClientRect().height, scrollHeight: body.scrollHeight };
+  });
+  for (const width of [1360, 390]) {
+    await home.setViewportSize({ width, height: width === 390 ? 620 : 900 });
+    await input.fill(''); await input.scrollIntoViewIfNeeded();
+    const before = await layout();
+    await input.fill('杭州');
+    await expect(dropdown).toBeVisible();
+    await expect(home.locator('#widgetCityResults button')).toHaveCount(20);
+    expect(await layout()).toEqual(before);
+    const bounds = await dropdown.boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(0); expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+    expect(bounds.y).toBeGreaterThanOrEqual(0); expect(bounds.y + bounds.height).toBeLessThanOrEqual(width === 390 ? 620 : 900);
+    expect(await dropdown.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
+    await home.screenshot({ path: testInfo.outputPath(`city-dropdown-${width}.png`) });
+    await input.press('Escape'); await expect(dropdown).toBeHidden(); await expect(home.locator('#widgetModal')).toBeVisible();
+    await input.press('Enter'); await expect(home.locator('#widgetCityResults button')).toHaveCount(20);
+    await home.locator('#widgetModalTitle').click(); await expect(dropdown).toBeHidden();
+  }
+  await input.focus(); await input.press('Enter'); await expect(home.locator('#widgetCityResults button')).toHaveCount(20);
+  await input.press('ArrowDown'); await input.press('ArrowDown'); await input.press('Enter');
+  await expect(dropdown).toBeHidden(); await expect(input).toHaveValue('杭州');
+  await expect(home.locator('#widgetCityStatus')).toContainText('地区2');
+  await home.locator('#saveWidget').click();
+  await expect.poll(() => worker.evaluate(async () => (await chrome.storage.local.get('tabcat')).tabcat.widgets[0]?.latitude)).toBe(30.1);
 });
 
 test('weather city selection, offline retry and sandboxed web widgets work', async ({ extension }, testInfo) => {
@@ -1767,10 +1810,16 @@ async function addTool(home, type, configure) {
   await home.locator('#libraryDone').click();
   await expect(home.locator(`#sitesPages .widget-${type}`)).toBeVisible();
   if (configure) {
-    await home.locator('#editDesktopButton').click(); await home.locator(`#sitesPages .widget-${type} [data-widget-edit]`).click();
+    await home.locator('#editDesktopButton').click(); await home.locator(`#sitesPages .desktop-widget:has(.widget-${type}) [data-widget-edit]`).click();
     await configure(); await home.getByRole('button', { name: '保存组件', exact: true }).click();
     await home.locator('#finishEditing').click();
   }
+}
+
+// New widgets are appended to the desktop, so reloaded tabs must page to them.
+async function showDesktopPage(page, which = 'last') {
+  const dots = page.locator('.page-dot');
+  if (await dots.count()) await dots[which]().click();
 }
 
 test('clock, calendar and countdown tools configure and fit a narrow grid', async ({ extension }, testInfo) => {
@@ -1802,7 +1851,7 @@ test('todos save, sync across tabs, toggle and undo; calculator parses without e
   await expect(home.locator('.todo-row')).toHaveCount(2);
   const other = await context.newPage(); await other.goto(`chrome-extension://${id}/newtab.html`);
   await expect(other.locator('.todo-row')).toHaveCount(2);
-  await other.locator('[data-todo-check]').first().check(); await expect(home.locator('[data-todo-check]').first()).toBeChecked();
+  await showDesktopPage(other); await other.locator('[data-todo-check]').first().check(); await expect(home.locator('[data-todo-check]').first()).toBeChecked();
   await expect(home.locator('.todo-progress')).toHaveAttribute('aria-valuenow', '50');
   await home.locator('[data-todo-clear]').click(); await expect(home.locator('.todo-row')).toHaveCount(1);
   await home.locator('#status').getByRole('button', { name: '撤销' }).click(); await expect(home.locator('.todo-row')).toHaveCount(2);
@@ -1825,7 +1874,7 @@ test('pomodoro starts, survives reload, pauses, finishes and switches modes', as
   await expect(home.locator('[data-timer-value]')).toHaveText('01:00');
   await home.locator('[data-timer="toggle"]').click();
   await expect.poll(() => worker.evaluate(async () => (await chrome.storage.local.get('tabcat')).tabcat.widgets[0].timer.endsAt)).toBeGreaterThan(0);
-  await home.reload(); await expect(home.locator('[data-timer="toggle"]')).toHaveText('暂停');
+  await home.reload(); await showDesktopPage(home); await expect(home.locator('[data-timer="toggle"]')).toHaveText('暂停');
   await home.locator('[data-timer="toggle"]').click(); await expect(home.locator('[data-timer="toggle"]')).toHaveText('开始');
   await expect.poll(() => worker.evaluate(async () => (await chrome.storage.local.get('tabcat')).tabcat.widgets[0].timer.endsAt)).toBeNull();
   await home.locator('[data-timer="toggle"]').click();
@@ -2002,7 +2051,7 @@ test('weather defaults to IP location, refreshes its city and preserves manual c
   city = '上海'; longitude = 121.47;
   await home.locator('[data-weather-refresh]').click(); await expect(weather).toContainText('上海');
   expect(ipCalls).toBe(2);
-  await home.reload(); await expect(weather).toContainText('上海');
+  await home.reload(); await expect(weather).toContainText('上海'); await showDesktopPage(home);
   await home.screenshot({ path: testInfo.outputPath('ip-weather.png') });
   await context.route('https://geocoding-api.open-meteo.com/**', route => route.fulfill({ json: { results: [{ name: '北京', admin1: '北京', country: '中国', latitude: 39.9, longitude: 116.4 }] } }));
   await home.locator('#editDesktopButton').click(); await home.locator('[data-widget-edit]').click();
@@ -2011,7 +2060,7 @@ test('weather defaults to IP location, refreshes its city and preserves manual c
   await home.locator('#saveWidget').click(); await home.locator('#finishEditing').click();
   await expect(weather).toContainText('北京'); await expect(weather).not.toContainText('IP 定位');
   const before = ipCalls;
-  await home.reload(); await expect(weather).toContainText('北京'); expect(ipCalls).toBe(before);
+  await home.reload(); await expect(weather).toContainText('北京'); expect(ipCalls).toBe(before); await showDesktopPage(home);
   await home.locator('#editDesktopButton').click(); await home.locator('[data-widget-edit]').click();
   await expect(home.locator('#widgetLocationMode')).toHaveValue('manual');
   await home.locator('#widgetLocationMode').selectOption('ip'); await home.locator('#saveWidget').click();
@@ -2133,6 +2182,13 @@ test('weather and shortcut dragging show a floating preview and clean it up', as
   await context.route('https://api.open-meteo.com/**', route => route.fulfill({ json: { current: { temperature_2m: 24, weather_code: 0, is_day: 1, relative_humidity_2m: 65, time: '2026-10-10T14:30' } } }));
   await addTool(home, 'weather');
   await expect(home.locator('#sitesPages .weather-clear')).toHaveCount(1);
+  await worker.evaluate(async () => {
+    const { tabcat } = await chrome.storage.local.get('tabcat');
+    tabcat.desktopOrder.unshift(...tabcat.desktopOrder.splice(tabcat.desktopOrder.findIndex(item => item.id.startsWith('widget:')), 1));
+    await chrome.storage.local.set({ tabcat });
+  });
+  await expect(home.locator('#sitesPages .desktop-tile').first()).toHaveClass(/desktop-widget/);
+  await showDesktopPage(home, 'first');
   await home.locator('#editDesktopButton').click();
   for (const source of [home.locator('#sitesPages .desktop-widget'), home.locator('#sitesPages [data-desktop-key="site:github"]')]) {
     // Wait for the preceding layout transition before capturing drag coordinates.
@@ -2210,6 +2266,7 @@ test('tool cards fit compact light and dark layouts and expose their changing st
 test('widget spans align with icon artwork edges rather than label cells', async ({ extension }) => {
   const { home, worker } = extension;
   await addTool(home, 'note');
+  await showDesktopPage(home, 'first');
   await home.emulateMedia({ reducedMotion: 'reduce' });
   await home.mouse.move(0, 0);
   for (const scenario of [
@@ -2274,7 +2331,7 @@ test('weather cache survives new tabs, keeps offline readings and changes at sun
     await chrome.storage.local.set({ tabcatWeatherCacheV1: cache });
   });
   offline = true;
-  await home.reload(); await expect(card).toContainText('24°'); await expect(card).toContainText('保留上次天气');
+  await home.reload(); await expect(card).toContainText('24°'); await expect(card).toContainText('保留上次天气'); await showDesktopPage(home);
   await expect(card).toContainText('更新于 10-10 12:05');
   await expect(card.locator('[data-weather]')).not.toContainText(/正在|加载/);
   await card.screenshot({ path: testInfo.outputPath('cached-weather-offline.png') });
