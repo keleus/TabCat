@@ -167,8 +167,8 @@
 
   <dialog class="modal site-library-modal" id="siteLibraryModal" aria-labelledby="libraryTitle">
     <div class="modal-header"><div><h2 id="libraryTitle">添加到桌面</h2><p class="helper">图标和小组件，点击添加或拖到桌面。</p></div><button type="button" class="icon-button" id="closeLibrary" aria-label="关闭候选栏" data-icon="close"></button></div>
-    <div class="library-tabs" role="group" aria-label="候选类型"><button type="button" data-library-kind="all" aria-pressed="true">全部</button><button type="button" data-library-kind="sites" aria-pressed="false">图标</button><button type="button" data-library-kind="widgets" aria-pressed="false">小组件</button></div>
-    <label class="library-search"><span data-icon="search"></span><input id="librarySearch" type="search" aria-label="搜索候选项" placeholder="搜索图标、网址或小组件" autocomplete="off"></label>
+    <div class="library-tabs" role="group" aria-label="候选类型"><button type="button" data-library-kind="sites" aria-pressed="true">图标</button><button type="button" data-library-kind="widgets" aria-pressed="false">小组件</button></div>
+    <label class="library-search"><span data-icon="search"></span><input id="librarySearch" type="search" aria-label="搜索候选项" placeholder="搜索图标或网址" autocomplete="off"></label>
     <div class="library-categories" id="libraryCategories" role="group" aria-label="快捷方式分类"></div>
     <p id="libraryCount" class="helper"></p>
     <div class="library-results"><section id="libraryWidgets"><h3>小组件</h3><div class="widget-gallery"></div></section><section id="librarySites"><h3>图标</h3><div id="libraryGrid" class="library-grid"></div></section><div id="libraryEmpty" class="library-empty" hidden><strong>没有找到匹配的候选项</strong><p>试试其他关键词或分类，也可以手动添加网址。</p></div></div>
