@@ -137,12 +137,100 @@ test('a half-arrived revision is ignored instead of being overwritten', async ()
   const second = device(shared, normalizeState({ sites: [{ id: 'b', name: 'B', url: 'https://b.example' }] }));
   const meta = shared.data[SYNC_META];
   shared.data[SYNC_META] = { ...meta, hash: 'not-yet' };
-  await second.sync.setEnabled(true);
+  // Switching sync on refuses to guess; a device already syncing waits quietly.
+  await assert.rejects(second.sync.setEnabled(true), /还没下载完整/);
+  assert.equal((await second.sync.settings()).enabled, false);
   assert.equal(shared.data[SYNC_META].hash, 'not-yet');
   assert.deepEqual(second.state().sites.map(site => site.id), ['b']);
+  await first.sync.reconcile();
+  assert.equal(shared.data[SYNC_META].hash, 'not-yet');
   shared.data[SYNC_META] = meta;
-  await second.sync.reconcile();
+  await second.sync.setEnabled(true);
   assert.deepEqual(second.state().sites.map(site => site.id).sort(), ['a', 'b']);
+});
+
+// Each device has its own copy of sync storage; Chrome keeps the last write.
+function deliver(from, to) { Object.assign(to.data, structuredClone(from.data)); for (const key of Object.keys(to.data)) if (!(key in from.data)) delete to.data[key]; }
+
+test('a new computer uploading before the old one\'s copy arrives does not reset it', async () => {
+  const fresh = normalizeState({});
+  const laptopArea = fakeArea(), desktopArea = fakeArea();
+  const laptop = device(laptopArea, normalizeState({ ...fresh, iconSize: 96, accentColor: '#123456', sites: [...fresh.sites, { id: 'x', name: 'X', url: 'https://x.example' }] }));
+  await laptop.sync.setEnabled(true);
+  const desktop = device(desktopArea, normalizeState({ ...fresh, sites: [...fresh.sites, { id: 'y', name: 'Y', url: 'https://y.example' }] }));
+  assert.deepEqual(await desktop.sync.peek(), { remote: 'empty' });
+  await desktop.sync.setEnabled(true, 'local');
+  // The desktop's later write replaced the laptop's on the server.
+  deliver(desktopArea, laptopArea);
+  await laptop.sync.reconcile();
+  assert.equal(laptop.state().iconSize, 96);
+  assert.equal(laptop.state().accentColor, '#123456');
+  assert.ok(['x', 'y'].every(id => laptop.state().sites.some(site => site.id === id)));
+  deliver(laptopArea, desktopArea);
+  await desktop.sync.reconcile();
+  assert.equal(desktop.state().iconSize, 96);
+  assert.equal(desktop.state().accentColor, '#123456');
+  assert.ok(['x', 'y'].every(id => desktop.state().sites.some(site => site.id === id)));
+});
+
+test('edits made on two devices at once both survive', async () => {
+  const laptopArea = fakeArea(), desktopArea = fakeArea();
+  const laptop = device(laptopArea, normalizeState({ sites: [{ id: 'a', name: 'A', url: 'https://a.example' }] }));
+  await laptop.sync.setEnabled(true);
+  deliver(laptopArea, desktopArea);
+  const desktop = device(desktopArea, normalizeState({ sites: [] }));
+  await desktop.sync.setEnabled(true);
+  deliver(desktopArea, laptopArea);
+  await laptop.sync.reconcile();
+  // Both edit before either sees the other's change; the desktop writes last.
+  laptop.local.data.tabcat = { ...laptop.state(), iconSize: 90 };
+  await laptop.sync.reconcile();
+  desktop.local.data.tabcat = { ...desktop.state(), accentColor: '#abcdef' };
+  await desktop.sync.reconcile();
+  deliver(desktopArea, laptopArea);
+  await laptop.sync.reconcile();
+  assert.equal(laptop.state().iconSize, 90);
+  assert.equal(laptop.state().accentColor, '#abcdef');
+  deliver(laptopArea, desktopArea);
+  await desktop.sync.reconcile();
+  assert.equal(desktop.state().iconSize, 90);
+  assert.equal(desktop.state().accentColor, '#abcdef');
+});
+
+test('switching sync on can merge, take the remote copy, or replace it', async () => {
+  const shared = fakeArea();
+  const laptop = device(shared, normalizeState({ iconSize: 96, sites: [{ id: 'a', name: 'A', url: 'https://a.example' }] }));
+  await laptop.sync.setEnabled(true);
+  const peek = await device(shared).sync.peek();
+  assert.equal(peek.remote, 'ready');
+  assert.equal(peek.sites, 1);
+  const own = () => normalizeState({ background: 'local', backgroundLocal: wallpaper, accentColor: '#abcdef', sites: [{ id: 'b', name: 'B', url: 'https://b.example' }] });
+
+  const mergeArea = fakeArea(); deliver(shared, mergeArea);
+  const merge = device(mergeArea, own());
+  await merge.sync.setEnabled(true, 'merge');
+  assert.deepEqual(merge.state().sites.map(site => site.id).sort(), ['a', 'b']);
+  assert.equal(merge.state().iconSize, 96);
+  assert.equal(merge.state().accentColor, '#abcdef');
+
+  const remoteArea = fakeArea(); deliver(shared, remoteArea);
+  const take = device(remoteArea, own());
+  await take.sync.setEnabled(true, 'remote');
+  assert.deepEqual(take.state().sites.map(site => site.id), ['a']);
+  assert.equal(take.state().iconSize, 96);
+  assert.equal(take.state().accentColor, normalizeState({}).accentColor);
+  assert.equal(take.state().backgroundLocal, wallpaper);
+
+  const localArea = fakeArea(); deliver(shared, localArea);
+  const push = device(localArea, own());
+  await push.sync.setEnabled(true, 'local');
+  assert.deepEqual(push.state().sites.map(site => site.id), ['b']);
+  deliver(localArea, shared);
+  await laptop.sync.reconcile();
+  assert.deepEqual(laptop.state().sites.map(site => site.id), ['b']);
+  assert.equal(laptop.state().accentColor, '#abcdef');
+
+  await assert.rejects(device(fakeArea(), own()).sync.setEnabled(true, 'remote'), /还没有 TabCat 的配置/);
 });
 
 test('an uploaded icon reaches the other device as a reference and stays inline at home', async () => {

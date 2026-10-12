@@ -344,6 +344,11 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 6px; }
 #refreshSiteIcon { flex-shrink: 0; padding: 7px 10px; font-size: 11px; }
 .import-option { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 13px; cursor: pointer; }
 .import-option input { accent-color: var(--accent); }
+.sync-modes { display: grid; gap: 8px; margin: 18px 0 0; padding: 0; border: 0; }
+.sync-mode { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 12px; line-height: 1.6; color: var(--muted); cursor: pointer; }
+.sync-mode:has(input:checked) { border-color: var(--accent); }
+.sync-mode input { margin-top: 3px; accent-color: var(--accent); }
+.sync-mode strong { display: block; color: var(--text); font-size: 13px; font-weight: 600; }
 .icon-upload-row { display: flex; gap: 8px; }
 .icon-upload-row .secondary-button { flex: 1; }
 

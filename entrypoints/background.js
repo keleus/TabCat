@@ -33,8 +33,12 @@ export default defineBackground(() => {
       handleNetworkMessage(message).then(result => respond({ ok: true, ...result }), error => respond({ ok: false, error: error.message }));
       return true;
     }
+    if (message?.type === 'tabcat:sync-peek') {
+      sync.peek().then(result => respond({ ok: true, ...result }), error => respond({ ok: false, error: error.message }));
+      return true;
+    }
     if (message?.type === 'tabcat:sync-enable' || message?.type === 'tabcat:sync-now') {
-      (message.type === 'tabcat:sync-now' ? sync.reconcile() : sync.setEnabled(Boolean(message.enabled)))
+      (message.type === 'tabcat:sync-now' ? sync.reconcile() : sync.setEnabled(Boolean(message.enabled), message.mode))
         .then(() => sync.settings()).then(settings => respond({ ok: true, settings }), error => respond({ ok: false, error: error.message }));
       return true;
     }

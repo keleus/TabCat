@@ -244,6 +244,18 @@
       <div class="modal-actions"><button class="secondary-button" value="cancel" autofocus>取消</button><button class="danger-button" value="confirm">确认恢复</button></div>
     </form>
   </dialog>
+  <dialog class="modal" id="syncModeModal" aria-labelledby="syncModeTitle" aria-describedby="syncModeSummary">
+    <form method="dialog" id="syncModeForm">
+      <h2 id="syncModeTitle">开启浏览器同步</h2>
+      <p id="syncModeSummary"></p>
+      <fieldset class="sync-modes" id="syncModes" aria-label="同步方式">
+        <label class="sync-mode"><input type="radio" name="syncMode" value="merge" checked><span><strong>合并</strong>两边的网站和小组件都保留，重复网址只留一个；其他设备改过的设置以云端为准，其余沿用本机。</span></label>
+        <label class="sync-mode"><input type="radio" name="syncMode" value="remote"><span><strong>用云端覆盖本机</strong>本机的网站、小组件和设置换成云端的版本。本机上传的壁纸保留。</span></label>
+        <label class="sync-mode"><input type="radio" name="syncMode" value="local"><span><strong>用本机覆盖云端</strong>上传本机的配置，其他设备同步后会和本机一致。</span></label>
+      </fieldset>
+      <div class="modal-actions"><button class="secondary-button" value="cancel" autofocus>取消</button><button class="primary-button" id="syncModeConfirm" value="confirm">开启同步</button></div>
+    </form>
+  </dialog>
   <div id="status" role="status" class="toast" hidden></div>
   <script type="module" src="./main.js"></script>
 </body>

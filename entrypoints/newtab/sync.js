@@ -1,18 +1,51 @@
 import { browser } from 'wxt/browser';
 import { SYNC_SETTINGS } from '../../lib/sync.js';
 import { WEBDAV_SETTINGS, WEBDAV_STATUS } from '../../lib/webdav.js';
-import { setSyncEnabled, syncNow, saveWebdav, syncWebdav, clearWebdav } from '../../lib/storage.js';
+import { setSyncEnabled, peekSync, syncNow, saveWebdav, syncWebdav, clearWebdav } from '../../lib/storage.js';
 import { $, showStatus } from './app.js';
 
 let busy = false;
 
 export function bindSync() {
   const toggle = $('#syncEnabled'), button = $('#syncNow');
-  toggle.addEventListener('change', () => run(() => setSyncEnabled(toggle.checked), toggle.checked ? '已开启同步' : '已关闭同步，配置仍保留在本机'));
+  toggle.addEventListener('change', () => {
+    if (!toggle.checked) return run(() => setSyncEnabled(false), '已关闭同步，配置仍保留在本机');
+    toggle.checked = false;
+    void chooseMode();
+  });
   button.addEventListener('click', () => run(syncNow));
+  $('#syncModeForm').addEventListener('submit', event => {
+    event.preventDefault();
+    $('#syncModeModal').close();
+    if (event.submitter?.value !== 'confirm') return;
+    const mode = $('#syncModes').hidden ? 'local' : new FormData($('#syncModeForm')).get('syncMode');
+    run(() => setSyncEnabled(true, mode), '已开启同步');
+  });
   browser.storage.onChanged.addListener((changes, area) => { if (area === 'local' && changes[SYNC_SETTINGS]) render(changes[SYNC_SETTINGS].newValue); });
   browser.storage.local.get(SYNC_SETTINGS).then(stored => render(stored[SYNC_SETTINGS]));
   bindWebdav();
+}
+
+// A second computer may not have received the other devices' copy yet, so
+// switching sync on first shows what the browser has synced and lets the user
+// decide how the two copies combine.
+async function chooseMode() {
+  let peek;
+  try { peek = await peekSync(); } catch (error) { showStatus(`同步失败：${error.message}`, true); return; }
+  const summary = $('#syncModeSummary'), confirm = $('#syncModeConfirm');
+  $('#syncModes').hidden = peek.remote !== 'ready';
+  confirm.hidden = peek.remote === 'incomplete';
+  if (peek.remote === 'ready') {
+    summary.textContent = `浏览器同步里已有 TabCat 的配置：${peek.sites} 个网站、${peek.widgets} 个小组件，${formatTime(peek.updated)} 更新。选择如何与本机合并：`;
+    confirm.textContent = '开启同步';
+    $('#syncModeForm').elements.syncMode.value = 'merge';
+  } else if (peek.remote === 'incomplete') {
+    summary.textContent = '正在从浏览器账号下载其他设备的配置，还没下载完整。请过一两分钟再开启。';
+  } else {
+    summary.textContent = '浏览器同步里还没有 TabCat 的配置，开启后会上传本机配置。如果其他电脑已经开启过同步，它的配置可能还没下载到这台电脑，建议等一两分钟后再开启，以免覆盖。';
+    confirm.textContent = '上传本机配置';
+  }
+  $('#syncModeModal').showModal();
 }
 
 async function run(action, message) {
