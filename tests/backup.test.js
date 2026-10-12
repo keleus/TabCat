@@ -7,21 +7,24 @@ import { normalizeState } from '../lib/state.js';
 
 const fixture = name => readFileSync(fileURLToPath(new URL(`./fixtures/imports/${name}`, import.meta.url)), 'utf8');
 
-test('shortcut opening preferences roundtrip and external imports affect shortcuts independently', () => {
+test('shortcut opening preferences roundtrip; iTab imports set them independently and Infinity imports leave them alone', () => {
   for (const choice of [true, false]) {
     const current = normalizeState({ shortcutOpenInNewTab: choice, openInNewTab: !choice });
     const restored = parseBackup(createBackup(current));
     assert.equal(restored.shortcutOpenInNewTab, choice);
     assert.equal(restored.openInNewTab, !choice);
+    const existing = normalizeState({ shortcutOpenInNewTab: !choice, openInNewTab: !choice });
     const itab = JSON.parse(fixture('itab-config.json'));
     itab.baseConfig.open.iconBlank = choice;
+    const importedItab = inspectBackup(JSON.stringify(itab), existing).state;
+    assert.equal(importedItab.shortcutOpenInNewTab, choice);
+    assert.equal(importedItab.openInNewTab, !choice);
+    // Infinity's link behaviour is not icon appearance, so it is not imported.
     const infinity = JSON.parse(fixture('infinity-v2.json'));
     infinity.data.setting.setting.link.icon = choice;
-    for (const backup of [itab, infinity]) {
-      const imported = inspectBackup(JSON.stringify(backup), normalizeState({ shortcutOpenInNewTab: !choice, openInNewTab: !choice })).state;
-      assert.equal(imported.shortcutOpenInNewTab, choice);
-      assert.equal(imported.openInNewTab, !choice);
-    }
+    const importedInfinity = inspectBackup(JSON.stringify(infinity), existing).state;
+    assert.equal(importedInfinity.shortcutOpenInNewTab, !choice);
+    assert.equal(importedInfinity.openInNewTab, !choice);
   }
 });
 
@@ -54,7 +57,79 @@ test('TabCat inspection retains replacement semantics and reports stable summary
   assert.deepEqual(inspected.warnings, []);
 });
 
-test('Infinity v2 fixture imports HTTP sites and settings, expands folders, and skips components', () => {
+test('Infinity v2 import applies only icon appearance and leaves layout, search, link and wallpaper settings alone', () => {
+  const current = normalizeState({
+    layoutColumns: 8, layoutRows: 4, columnGap: 40, rowGap: 40,
+    searchRadius: 10, searchOpacity: 70, showSearch: false, shortcutOpenInNewTab: false,
+    background: 'custom', backgroundUrl: 'https://example.com/bg.jpg', backgroundDim: 30, backgroundBlur: 10,
+    iconSize: 100, iconOpacity: 50, showSiteNames: false,
+  });
+  const inspected = inspectBackup(fixture('infinity-v2.json'), current);
+  const { state } = inspected;
+  // Fixture: icon scale 0.5 -> 72px, radius 0.5 -> 24px = 33.33% of 72px, opacity 1 -> 100%.
+  assert.deepEqual([state.iconSize, state.iconRadius, state.iconOpacity, state.showSiteNames], [72, 33.33, 100, true]);
+  assert.equal(inspected.summary.settings.imported, 4);
+  const imported = new Set(['sites', 'desktopOrder', 'engines', 'currentEngine', 'iconSize', 'iconRadius', 'iconOpacity', 'showSiteNames']);
+  for (const key of Object.keys(current)) {
+    if (!imported.has(key)) assert.deepEqual(state[key], current[key], `${key} must not be changed by an Infinity import`);
+  }
+  assert.equal(inspected.warnings.some(warning => warning.includes('仅导入 Infinity 的图标外观')), true);
+});
+
+test('Infinity v2 import drops icons hosted on the Infinity CDN but keeps inline and site-hosted ones', () => {
+  const backup = JSON.parse(fixture('infinity-v2.json'));
+  const inline = 'data:image/png;base64,AAAA';
+  backup.data.site.sites[0].push(
+    { uuid: 'site-inline', id: 'siteId-inline', name: '内嵌图标', target: 'https://inline.example/', type: 'web', bgType: 'image', bgImage: inline },
+    { uuid: 'site-custom', id: 'siteId-custom', name: '自定义图标', target: 'https://custom.example/', type: 'web', bgType: 'image', bgImage: 'https://infinitypro-img.infinitynewtab.com/custom-icon/custom.png' },
+  );
+  const inspected = inspectBackup(JSON.stringify(backup), normalizeState({ sites: [] }));
+  const site = name => inspected.state.sites.find(item => item.name === name);
+  assert.equal(JSON.stringify(inspected.state).includes('infinitynewtab.com'), false);
+  // GitHub (library icon) and the custom icon fall back to discovery from the website.
+  assert.deepEqual(site('GitHub').iconCandidates, []);
+  assert.deepEqual(site('自定义图标').iconCandidates, []);
+  // MDN's icon is hosted by MDN itself, and an inline image needs no network request.
+  assert.deepEqual(site('MDN').iconCandidates, ['https://developer.mozilla.org/favicon-48x48.cbbd161b.png']);
+  assert.deepEqual(site('内嵌图标').iconCandidates, [inline]);
+  assert.equal(inspected.warnings.some(warning => warning.includes('从各网站自动获取图标')), true);
+});
+
+test('Infinity v2 import can keep icon addresses as the shortcut icon for the new tab to download and cache', () => {
+  const backup = JSON.parse(fixture('infinity-v2.json'));
+  const inline = 'data:image/png;base64,AAAA';
+  backup.data.site.sites[0].push(
+    { uuid: 'site-inline', id: 'siteId-inline', name: '内嵌图标', target: 'https://inline.example/', type: 'web', bgType: 'image', bgImage: inline },
+    { uuid: 'site-custom', id: 'siteId-custom', name: '自定义图标', target: 'https://custom.example/', type: 'web', bgType: 'image', bgImage: 'https://infinitypro-img.infinitynewtab.com/custom-icon/custom.png' },
+  );
+  const text = JSON.stringify(backup), empty = normalizeState({ sites: [] });
+
+  const dropped = inspectBackup(text, empty);
+  assert.deepEqual(dropped.summary.infinityIcons, { sites: 2, kept: false });
+  assert.equal(dropped.state.sites.some(site => site.icon), false);
+
+  const kept = inspectBackup(text, empty, { keepInfinityIcons: true });
+  assert.deepEqual(kept.summary.infinityIcons, { sites: 2, kept: true });
+  const site = name => kept.state.sites.find(item => item.name === name);
+  assert.equal(site('GitHub').icon, 'https://infinityicon.infinitynewtab.com/user-share-icon/github.png');
+  assert.equal(site('自定义图标').icon, 'https://infinitypro-img.infinitynewtab.com/custom-icon/custom.png');
+  // Icons that never lived on the Infinity CDN stay candidates, not user overrides.
+  assert.equal(site('MDN').icon, '');
+  assert.deepEqual(site('MDN').iconCandidates, ['https://developer.mozilla.org/favicon-48x48.cbbd161b.png']);
+  assert.equal(site('内嵌图标').icon, '');
+  assert.deepEqual(site('内嵌图标').iconCandidates, [inline]);
+  assert.equal(kept.warnings.some(warning => warning.includes('按图标地址保留')), true);
+  assert.equal(kept.warnings.some(warning => warning.includes('从各网站自动获取图标')), false);
+  assert.equal(dropped.warnings.some(warning => warning.includes('从各网站自动获取图标')), true);
+
+  // Shortcuts that already exist are skipped, so they are not counted or changed.
+  const existing = normalizeState({ sites: [{ id: 'mine', name: '我的 GitHub', url: 'https://github.com/' }] });
+  const merged = inspectBackup(text, existing, { keepInfinityIcons: true });
+  assert.deepEqual(merged.summary.infinityIcons, { sites: 1, kept: true });
+  assert.equal(merged.state.sites.find(item => item.id === 'mine').icon, '');
+});
+
+test('Infinity v2 fixture imports HTTP sites and icon appearance, expands folders, and skips components', () => {
   const current = normalizeState({
     sites: [{ id: 'existing', name: '已有网站', url: 'https://existing.example/' }],
   });

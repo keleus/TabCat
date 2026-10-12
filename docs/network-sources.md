@@ -16,6 +16,8 @@ Bing 每日壁纸使用 `https://www.bing.com/HPImageArchive.aspx?format=js&idx=
 
 favicon 不达标或加载失败时使用页眉、首页链接中的图片及 srcset、内联 SVG、CSS 背景 Logo；缺少 Logo 的深层页面会尝试首页。横向 Logo 完整显示。自动结果缓存一天，无结果十分钟；已选结果按尺寸要求分别缓存，旧版选择缓存失效。用户明确指定的图片或文字优先。书签栏的小图标仍由浏览器提供。
 
+用户填写的图标图片网址由扩展后台下载一次（不带 Cookie 和来源页，限 2 MB，按文件内容判断为 PNG / JPG / WebP / GIF / ICO，网页和 SVG 会被拒绝），缩小到最长边 256 px 后保存在 `chrome.storage.local` 的 `tabcatIconImages`，最多 150 张、约 3 MB，超出时先丢弃最早的。之后直接使用本机副本，网址失效也不受影响；下载失败十分钟内不重试，「重新获取」会再次下载，失败时保留旧副本。浏览器同步只带上网址，不带图片；本机缓存不进入备份。SVG 等无法缓存的地址仍由页面直接加载。从电脑上传的图片同样缩小到 256 px，作为站点的 `icon` 内嵌保存在本机；连接 WebDAV 后由扩展后台上传到用户填写的服务器（`TabCat/icons/`），其他设备从同一服务器下载。WebDAV 请求只带用户填写的账号，不带浏览器 Cookie。
+
 ## 网站库本地图标
 
 网站库来源、原始网站、像素尺寸和 SHA-256 记录在 [sources.json](../public/catalog/sources.json)。`hd-favicon` 是已核验且达到普通图标尺寸要求的官网图标；`logoFallback` 保留原有首页/品牌图，用于放大后的回退。`page-logo` 是已核验的官网页面 Logo；`brand-artwork` 是已有品牌图；`brand-fallback` 是取不到官网 Logo 时的 Simple Icons 矢量备用图。其他条目仅保留历史资料，不参与显示。没有可靠素材时显示站点首字。

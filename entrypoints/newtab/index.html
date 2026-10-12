@@ -68,7 +68,7 @@
         <button data-tab="search"><span data-icon="search"></span>搜索设置</button>
         <button data-tab="wallpaper"><span data-icon="wallpaper"></span>壁纸背景</button>
         <button data-tab="time"><span data-icon="clock"></span>时间日期</button>
-        <button data-tab="data"><span data-icon="backup"></span>备份恢复</button>
+        <button data-tab="data"><span data-icon="backup"></span>同步备份</button>
       </nav>
       <div class="panel-content">
         <section class="settings-page active" data-page="appearance">
@@ -145,11 +145,20 @@
           <div class="field"><label for="clockWeight">时间字重</label><select id="clockWeight"><option value="300">纤细</option><option value="400">常规</option><option value="500">中等</option><option value="600">粗体</option></select></div>
         </section>
         <section class="settings-page" data-page="data">
-          <h2>备份与恢复</h2><p class="helper">网站、文件夹、小组件、搜索引擎、布局和本地壁纸一起保存。</p>
-          <div class="data-card"><h3>导出备份</h3><p>保存一份 TabCat 配置文件，方便换电脑或恢复。</p><button class="secondary-button" id="exportData">导出 JSON 文件</button></div>
+          <h2>同步与备份</h2><p class="helper">网站、文件夹、小组件、搜索引擎和布局可以同步到其他设备，也可以导出备份。</p>
+          <div class="data-card sync-card"><h3>浏览器同步</h3><p>在登录同一浏览器账号并开启同步的设备之间，自动同步网站、文件夹、小组件、搜索引擎和设置。本地上传的壁纸只保存在本机，不会同步；上传的图标需要配合下方的 WebDAV 同步。</p>
+            <div class="field inline"><label for="syncEnabled">在这台设备上开启同步</label><label class="switch"><input id="syncEnabled" aria-label="在这台设备上开启同步" type="checkbox"><span></span></label></div>
+            <p class="helper" id="syncStatus" role="status"></p><button class="secondary-button" id="syncNow" hidden>立即同步</button></div>
+          <form class="data-card webdav-card" id="webdavForm"><h3>图片同步（WebDAV）</h3><p>浏览器同步放不下图片。连接 WebDAV（如坚果云、Nextcloud、群晖）后，上传的图标会保存到其中的 TabCat 文件夹，其他设备会自动下载。账号只保存在这台设备。</p>
+            <div class="field"><label for="webdavUrl">服务器地址</label><input id="webdavUrl" type="url" placeholder="https://dav.jianguoyun.com/dav/" autocomplete="off" spellcheck="false"></div>
+            <div class="field"><label for="webdavUser">用户名</label><input id="webdavUser" autocomplete="off" spellcheck="false"></div>
+            <div class="field"><label for="webdavPassword">密码</label><input id="webdavPassword" type="password" autocomplete="new-password" placeholder="建议使用网盘的应用密码"></div>
+            <p class="helper" id="webdavStatus" role="status"></p>
+            <div class="webdav-actions"><button class="secondary-button" id="webdavSave" type="submit">连接并保存</button><button class="secondary-button" id="webdavSync" type="button" hidden>立即同步</button><button class="secondary-button" id="webdavClear" type="button" hidden>断开</button></div></form>
+          <div class="data-card"><h3>导出备份</h3><p>保存一份 TabCat 配置文件，包含本地壁纸，方便换电脑或恢复。</p><button class="secondary-button" id="exportData">导出 JSON 文件</button></div>
           <div class="data-card"><h3>从备份恢复</h3><p>支持 TabCat JSON、Infinity .infinity 和 iTab JSON。先预览兼容内容，再确认导入。</p><button class="secondary-button" id="importData">选择备份文件</button><input id="backupFile" type="file" accept="application/json,.json,.infinity,.itab,.txt" hidden></div>
           <button class="danger-button" id="resetButton">恢复默认设置</button>
-          <p class="helper data-note">数据保存在当前浏览器，无需登录。</p>
+          <p class="helper data-note">数据保存在当前浏览器，无需注册账号。</p>
         </section>
       </div>
     </div>
@@ -189,7 +198,12 @@
         </div>
         <div class="icon-status-row"><p id="siteIconStatus" class="helper" role="status"></p><button type="button" class="secondary-button" id="refreshSiteIcon">重新获取</button></div>
         <div id="siteTextFields" hidden><div class="field"><label for="siteIconText">图标文字</label><input id="siteIconText" placeholder="默认使用名称首字"></div></div>
-        <div id="siteCustomFields" hidden><div class="field"><label for="siteIcon">图标图片网址</label><input id="siteIcon" placeholder="https://example.com/icon.png"></div></div>
+        <div id="siteCustomFields" hidden>
+          <div class="field"><label for="siteIcon">图标图片网址</label><input id="siteIcon" placeholder="https://example.com/icon.png"></div>
+          <p class="helper" id="siteIconHint">填写网址后，图片由扩展下载并缓存在本机，同步时只带上网址。</p>
+          <div class="icon-upload-row"><button type="button" class="secondary-button" id="uploadSiteIcon">上传本地图片</button><button type="button" class="secondary-button" id="removeSiteIconUpload" hidden>移除上传的图片</button></div>
+          <input id="siteIconFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+        </div>
         <div class="field"><label for="siteColor">图标底色</label><input id="siteColor" type="color"></div>
         <div class="image-controls">
           <div class="field"><label for="siteImageScale">图片内部大小 <output id="siteImageScaleValue">100%</output></label><input id="siteImageScale" type="range" min="40" max="160" step="5" value="100"></div>
@@ -219,6 +233,7 @@
     <h2 id="importPreviewTitle">确认导入</h2>
     <p id="importSource" class="helper"></p>
     <p id="importSummary"></p><p id="importMode" class="helper"></p>
+    <label class="import-option" id="importKeepIconsRow" hidden><input type="checkbox" id="importKeepIcons"><span>保留 Infinity 图标：首次显示时由扩展下载并缓存到本机</span></label>
     <ul id="importWarnings" class="import-warnings" hidden></ul>
     <div class="modal-actions"><button class="secondary-button" id="cancelImport">取消</button><button class="primary-button" id="confirmImport">确认导入</button></div>
   </dialog>

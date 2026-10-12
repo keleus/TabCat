@@ -9,6 +9,7 @@ import { bindSuggestions } from '../../lib/suggestions-ui.js';
 import { WEATHER_STORAGE_KEY } from '../../lib/weather-cache.js';
 import { $, $$, app, state, setState, markSaved, hasPendingSaves, onStateAccepted, acceptState, storage, showStatus } from './app.js';
 import { bindBackup } from './backup.js';
+import { bindSync } from './sync.js';
 import { updateClock } from './clock.js';
 import { bindContextMenu, dismissContextMenu, isContextMenuOpen, moveContextMenuFocus } from './context-menu.js';
 import { bindDesktopView, fitDesktopHeight, goToPage, preloadDesktopIcons, renderAll, renderDesktopIcon, renderSites, setEditMode, settleStartupIcons, suppressClicks, syncEditMode } from './desktop-view.js';
@@ -74,6 +75,7 @@ function bindEvents() {
   bindContextMenu();
   bindWallpaper();
   bindBackup();
+  bindSync();
   document.addEventListener('keydown', handleKeys);
 }
 

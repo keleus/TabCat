@@ -25,7 +25,8 @@
 
 TabCat 文件使用 `mode: 'replace'`。Infinity 与 iTab 文件使用
 `mode: 'merge'`：在 `currentState` 存在时保留现有状态，追加尚未存在的
-HTTP/HTTPS 网站和搜索引擎，并覆盖能够明确对应到 TabCat 的设置。没有传入
+HTTP/HTTPS 网站和搜索引擎，并覆盖能够明确对应到 TabCat 的设置（Infinity
+仅限图标外观，见下文）。没有传入
 `currentState` 时从 TabCat 默认状态开始。导入函数不会修改传入的状态对象。
 
 ## Infinity v2
@@ -63,8 +64,25 @@ HTTP/HTTPS 网站和搜索引擎，并覆盖能够明确对应到 TabCat 的设�
 `foldersExpanded` 和 `warnings` 中报告。`app` 类型、`infinity://` 内部入口、
 壁纸、天气、待办、笔记和未识别组件会被跳过。只有 `http:` 和 `https:` 网址
 会被保存；`javascript:`、`data:`、扩展内部协议以及含用户名或密码的网址
-不会进入状态。Infinity 的百分比设置只在单位可以明确换算时导入；其他布局
-间距和产品专有字段会留在 `warnings` 中，不宣称全量兼容。
+不会进入状态。
+
+网站项目的 `bgImage` 指向 Infinity 的图标 CDN（`*.infinitynewtab.com`，包括图标库和
+云端自定义图标）。默认导入时不保留，TabCat 也不会向该域名请求图片，这些站点与手动
+添加的网址一样：先使用网站库内置图标，没有时再从网站自动发现图标。托管在其他域名的
+图片地址和内嵌的 `data:image` 图片仍作为备选图标保留。
+
+导入预览提供「保留 Infinity 图标」选项（`inspectBackup(text, state, {
+keepInfinityIcons: true })`，仅对 Infinity 备份生效，默认关闭）。勾选后，CDN 地址会
+成为站点自己的图标地址（`icon`）：新标签页首次显示时由扩展下载、缩小并缓存在本机，
+此后不再访问对方服务器，同步时也只带上这个网址。`summary.infinityIcons` 给出受影响
+的站点数和是否保留。
+
+设置方面只导入 `data.setting.setting.icon` 分组，对应 TabCat 的「图标外观」
+页：`scale`（乘以 144 得到图标大小）、`radius`（乘以 48 后按图标边长换算为百分比
+圆角）、`opacity`（乘以 100）和 `isHideIconName`（取反为名称显示）。`layout`
+行列与间距、`search`、`link` 打开方式、`view`、`font` 以及 `data.wallpaper`
+都不导入，避免覆盖用户已在 TabCat 排好的桌面；导入预览会在 `warnings` 中说明
+这一点，不宣称全量兼容。
 
 ## iTab
 

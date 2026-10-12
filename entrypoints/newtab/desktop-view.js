@@ -33,9 +33,12 @@ export function suppressClicks(duration) { suppressClick = true; setTimeout(() =
 
 export function renderAll() { renderEngines(); renderSites(); renderManagers(); }
 
+// Preload only what paints at startup: a folder tile shows its first four
+// members, and an unused preload costs a duplicate request and a warning.
 export function preloadDesktopIcons() {
+  const hidden = new Set(state.folders.flatMap(folder => folder.siteIds.slice(4)));
   window.tabcatStartup?.preloadIcons([
-    ...state.sites.filter(site => !site.icon && !site.iconText).map(site => catalogIcon(site.url)),
+    ...state.sites.filter(site => !hidden.has(site.id) && !site.icon && !site.iconText).map(site => catalogIcon(site.url)),
     ...state.engines.map(engineIcon),
   ]);
 }
