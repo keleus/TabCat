@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeState, mergeState, pinSite } from '../lib/state.js';
-import { desktopItems, packDesktop, mergeDesktopSites, moveDesktopItem } from '../lib/desktop.js';
+import { desktopItems, packDesktop, mergeDesktopSites, moveDesktopItem, placeOnPage } from '../lib/desktop.js';
 import { createBackup, parseBackup } from '../lib/backup.js';
 
 test('old desktops migrate in order and a popup pin remains visible', () => {
@@ -46,6 +46,25 @@ test('mixed-size grid never overlaps or exceeds the viewport at any supported wi
     }
   }
 });
+test('cross-page drops land on the hovered slot after earlier pages reflow', () => {
+  const keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+  const items = [...keys.map(key => ({ key, width: 1, height: 1 })), { key: 'add', width: 1, height: 1 }];
+  const drop = (source, pageIndex, x, y = 0) => {
+    const placement = placeOnPage(items, source, 3, 1, pageIndex, slot => Math.hypot(slot.x - x, slot.y - y));
+    const state = { desktopOrder: keys.map(id => ({ id })) };
+    moveDesktopItem(state, source, placement.target, placement.after);
+    return packDesktop(state.desktopOrder.map(({ id }) => ({ key: id, width: 1, height: 1 })), 3, 1).pages;
+  };
+  const position = (pages, key) => { const page = pages.findIndex(page => page.some(item => item.key === key)); return [page, pages[page].find(item => item.key === key).x]; };
+  // Forward: b leaves page 0, so d reflows back; b must still land on page 1.
+  for (let x = 0; x < 3; x++) assert.deepEqual(position(drop('b', 1, x), 'b'), [1, x]);
+  // Backward: e moves to page 0 and pushes c forward.
+  for (let x = 0; x < 3; x++) assert.deepEqual(position(drop('e', 0, x), 'e'), [0, x]);
+  // The last page keeps its own slots, including past the final item.
+  assert.deepEqual(position(drop('a', 2, 2), 'a'), [2, 0]);
+  assert.equal(placeOnPage(items, 'missing', 3, 1, 0, () => 0), null);
+});
+
 test('stale widget settings preserve newer notes and deletions', () => {
   const before = normalizeState({ widgets: [{ id: 'note', type: 'note', text: 'old' }] });
   const current = structuredClone(before); current.widgets[0].text = 'new';
