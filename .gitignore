@@ -1,6 +1,6 @@
 # Dependencies and generated extension files
 node_modules/
-.output/
+/output/
 .wxt/
 
 # Test coverage

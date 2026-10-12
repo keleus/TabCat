@@ -68,7 +68,7 @@ npm run build
 
 1. 打开 Chrome 的 `chrome://extensions/`，或 Edge 的 `edge://extensions/`。
 2. 开启「开发者模式」，点击「加载已解压的扩展程序」。
-3. 选择项目中的 `.output/chrome-mv3` 文件夹。
+3. 选择项目中的 `output/chrome-mv3` 文件夹。
 4. 新建标签页，按浏览器提示保留 TabCat 的新标签页设置。
 5. 将 TabCat 固定到浏览器工具栏，方便随时收藏网页。
 
@@ -78,6 +78,7 @@ npm run build
 
 - [使用与开发指南](docs/guide.md)：详细设置、开发构建与测试说明
 - [备份导入说明](docs/import-formats.md)：兼容格式与导入限制
+- [插件说明](docs/store-listing.md)：商店上架文案、图片素材、权限理由与数据使用
 - [网络资源与图标来源](docs/network-sources.md)
 - [壁纸来源](docs/wallpaper-source.md)
 - [TabCat 图标设计与 SVG 源文件](docs/brand/README.md)

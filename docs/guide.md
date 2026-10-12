@@ -8,8 +8,8 @@ TabCat 基于 WXT、原生 JavaScript 和 CSS 构建，使用 Manifest V3。产�
 
 ```sh
 npm install
-npm run dev       # WXT 启动开发浏览器，输出 .output/chrome-mv3-dev，支持热更新
-npm run build     # 输出 .output/chrome-mv3
+npm run dev       # WXT 启动开发浏览器，输出 output/chrome-mv3-dev，支持热更新
+npm run build     # 输出 output/chrome-mv3
 npm run zip       # 生成可分发的扩展 ZIP
 ```
 
@@ -17,7 +17,7 @@ npm run zip       # 生成可分发的扩展 ZIP
 
 1. 运行 `npm install` 和 `npm run build`。
 2. 打开 `chrome://extensions/`（Edge 使用 `edge://extensions/`），开启「开发者模式」。
-3. 点击「加载已解压的扩展程序」，选择本项目的 **`.output/chrome-mv3`** 目录。
+3. 点击「加载已解压的扩展程序」，选择本项目的 **`output/chrome-mv3`** 目录。
 4. 新建标签页，按浏览器提示保留 TabCat 的新标签页设置。
 5. 在浏览器扩展菜单中固定 TabCat 图标，方便添加网页。
 
@@ -71,7 +71,9 @@ npm run zip       # 生成可分发的扩展 ZIP
 
 ## 历史配置兼容
 
-配置迁移会保留网站、搜索引擎和自定义外观值。保留原来的 `tabcat` 存储键与配置字段；扩展 ID 不变时可直接读取旧配置。但加载目录从项目根目录变为 `.output/chrome-mv3` 后，浏览器可能将其视为另一个扩展（不同 ID），不会自动共享旧扩展的数据。若有旧配置需要保留，请先备份，勿先卸载旧扩展。
+配置迁移会保留网站、搜索引擎和自定义外观值。保留原来的 `tabcat` 存储键与配置字段；扩展 ID 不变时可直接读取旧配置。
+
+`wxt.config.ts` 在 manifest 中写入 Chrome 应用商店分配的公钥 `key`，扩展 ID 固定为 `hgblemcigdpgbhdmkhfoeicmpnhkmngg`，无论从哪个目录加载都与商店版本相同。加入固定 key 之前安装的版本 ID 随加载目录变化，与新版本互不共享数据：请先在旧扩展中导出备份，加载新版本后导入，确认无误再移除旧扩展。
 
 ## 权限
 
@@ -92,7 +94,7 @@ npm test                  # URL 校验、旧数据兼容、重复添加、并发
 npm run build
 ```
 
-界面改动请构建后在浏览器中加载 `.output/chrome-mv3` 手动验证。
+界面改动请构建后在浏览器中加载 `output/chrome-mv3` 手动验证。
 
 ## 目录
 
