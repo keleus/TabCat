@@ -75,8 +75,8 @@ export function renderSites() {
   document.documentElement.style.setProperty('--widget-inset', `${(Math.max(92, state.iconSize + 28) - state.iconSize) / 2}px`);
   $('#sitesPages').style.setProperty('--site-cols', metrics.columns);
   const { pages } = app.desktop.render(metrics.columns, state.layoutRows);
-  // Configured rows are page capacity; empty trailing rows must not offset visual centering.
-  const rows = Math.max(1, ...pages.flatMap(page => page.map(item => item.y + item.height)));
+  // Reserve the configured rows so a sparse desktop doesn't shift the clock and search down.
+  const rows = Math.max(1, state.layoutRows, ...pages.flatMap(page => page.map(item => item.y + item.height)));
   document.documentElement.style.setProperty('--grid-row-height', `${state.iconSize + 38}px`);
   document.documentElement.style.setProperty('--page-height', `${rows * (state.iconSize + 38) + (rows - 1) * state.rowGap}px`);
   app.currentPage = Math.max(0, Math.min(app.currentPage, pages.length - 1));
