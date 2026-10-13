@@ -199,18 +199,13 @@ function updateSitePreview(force = false) {
 export async function removeSite(id) {
   const index = state.sites.findIndex(site => site.id === id);
   const site = state.sites[index]; if (!site) return;
-  const folderBefore = structuredClone(state.folders.find(folder => folder.siteIds.includes(id)));
-  const orderBefore = state.desktopOrder.findIndex(item => item.id === (folderBefore ? `folder:${folderBefore.id}` : `site:${id}`));
+  const orderBefore = state.desktopOrder.findIndex(item => item.id === `site:${id}`);
   state.sites.splice(index, 1); renderAll(); if (!await storage.save()) return;
   showStatus(`已移除「${site.name}」`);
   const undo = document.createElement('button'); undo.textContent = '撤销';
   undo.addEventListener('click', async () => {
     if (!state.sites.some(item => item.id === site.id)) state.sites.splice(Math.min(index, state.sites.length), 0, site);
-    if (folderBefore) {
-      const folder = state.folders.find(item => item.id === folderBefore.id);
-      if (folder) { if (!folder.siteIds.includes(id)) folder.siteIds.splice(folderBefore.siteIds.indexOf(id), 0, id); }
-      else { state.folders.push({ ...folderBefore, siteIds: [id] }); state.desktopOrder.splice(Math.max(0, orderBefore), 0, { id: `folder:${folderBefore.id}` }); }
-    } else state.desktopOrder.splice(Math.max(0, orderBefore), 0, { id: `site:${id}` });
+    state.desktopOrder.splice(Math.max(0, orderBefore), 0, { id: `site:${id}` });
     renderAll(); if (await storage.save()) $('#status').hidden = true;
   });
   $('#status').append(undo);

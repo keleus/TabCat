@@ -26,7 +26,7 @@
     <button class="quiet-button" id="settingsButton" aria-label="打开设置" title="设置" data-icon="settings"></button>
   </nav>
 
-  <p id="editingHint" class="editing-hint" data-edit-only hidden>拖到边缘排序 · 拖到中心合并文件夹 · Alt + 方向键移动 · Esc 完成</p>
+  <p id="editingHint" class="editing-hint" data-edit-only hidden>拖动图标排序 · Alt + 方向键移动 · Esc 完成</p>
   <main class="app-shell">
     <div class="desktop-content">
       <section class="hero" aria-label="日期与时间" hidden>
@@ -84,14 +84,14 @@
           <div class="field"><label for="iconTextColorMode">文字颜色</label><select id="iconTextColorMode"><option value="auto">自动黑白 · 根据底色亮度</option><option value="custom">自定义颜色</option></select><input id="iconTextColor" type="color" aria-label="自定义文字颜色"></div>
           <div class="field"><label for="iconOpacity">图标不透明度 <output id="iconOpacityValue"></output></label><input id="iconOpacity" type="range" min="30" max="100" step="5"></div>
           <div class="field inline"><label for="namelessMode">无字模式</label><label class="switch"><input id="namelessMode" aria-label="无字模式" aria-describedby="namelessModeHint" type="checkbox"><span></span></label></div>
-          <p id="namelessModeHint" class="helper">隐藏网站、文件夹和小组件下方的名称。</p>
+          <p id="namelessModeHint" class="helper">隐藏网站和小组件下方的名称。</p>
           <div class="field"><label for="labelColor">桌面文字颜色</label><select id="labelColor"><option value="auto">跟随壁纸</option><option value="light">白色</option><option value="dark">深色</option></select></div>
           <div class="field"><label for="theme">设置面板主题</label><select id="theme"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select></div>
           <div class="field"><label for="fontFamily">字体</label><select id="fontFamily"><option value="system">系统字体</option><option value="serif">衬线字体</option><option value="rounded">圆体风格</option><option value="mono">等宽字体</option></select></div>
           <div class="field"><label for="accentColor">强调色</label><div class="color-field"><input id="accentColor" type="color"><span id="accentValue"></span></div></div>
         </section>
         <section class="settings-page" data-page="sites">
-          <h2>桌面布局</h2><p class="helper">在桌面编辑快捷方式、文件夹和小组件。</p>
+          <h2>桌面布局</h2><p class="helper">在桌面编辑快捷方式和小组件。</p>
           <div class="field inline"><label for="showBookmarksBar">显示书签栏</label><label class="switch"><input id="showBookmarksBar" aria-label="显示书签栏" type="checkbox"><span></span></label></div>
           <p class="helper">仅在新标签页顶部显示 Chrome 书签栏中的网站和文件夹；内容随浏览器书签同步。</p>
           <div class="field"><label for="bookmarkBarTransparency">书签栏透明度 <output id="bookmarkBarTransparencyValue"></output></label><input id="bookmarkBarTransparency" type="range" min="0" max="100" step="5"></div>
@@ -145,7 +145,7 @@
           <div class="field"><label for="clockWeight">时间字重</label><select id="clockWeight"><option value="300">纤细</option><option value="400">常规</option><option value="500">中等</option><option value="600">粗体</option></select></div>
         </section>
         <section class="settings-page" data-page="data">
-          <h2>同步与备份</h2><p class="helper">网站、文件夹、小组件、搜索引擎和布局可以同步到其他设备，也可以导出备份。</p>
+          <h2>同步与备份</h2><p class="helper">网站、小组件、搜索引擎和布局可以同步到其他设备，也可以导出备份。</p>
           <div class="data-card sync-card"><h3>浏览器同步</h3><p>在登录同一浏览器账号并开启同步的设备之间，自动同步网站、文件夹、小组件、搜索引擎和设置。本地上传的壁纸只保存在本机，不会同步；上传的图标需要配合下方的 WebDAV 同步。</p>
             <div class="field inline"><label for="syncEnabled">在这台设备上开启同步</label><label class="switch"><input id="syncEnabled" aria-label="在这台设备上开启同步" type="checkbox"><span></span></label></div>
             <p class="helper" id="syncStatus" role="status"></p><button class="secondary-button" id="syncNow" hidden>立即同步</button></div>
@@ -168,6 +168,9 @@
     <button role="menuitem" data-context-action="open">在新标签页打开 <span data-icon="external"></span></button>
     <button role="menuitem" data-context-action="edit">编辑快捷方式 <span data-icon="edit"></span></button>
     <button role="menuitem" data-context-action="delete" class="danger-text">移除快捷方式 <span data-icon="trash"></span></button>
+    <button role="menuitem" data-context-action="widget-open">打开小组件 <span data-icon="expand"></span></button>
+    <button role="menuitem" data-context-action="widget-edit">小组件设置 <span data-icon="settings"></span></button>
+    <button role="menuitem" data-context-action="widget-delete" class="danger-text">移除小组件 <span data-icon="trash"></span></button>
     <button role="menuitem" data-context-action="mode">进入编辑模式 <span data-icon="edit"></span></button>
     <button role="menuitem" data-context-action="add">添加网站 <span data-icon="plus"></span></button>
     <button role="menuitem" data-context-action="wallpaper">更换壁纸 <span data-icon="wallpaper"></span></button>

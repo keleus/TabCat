@@ -33,12 +33,11 @@ export function suppressClicks(duration) { suppressClick = true; setTimeout(() =
 
 export function renderAll() { renderEngines(); renderSites(); renderManagers(); }
 
-// Preload only what paints at startup: a folder tile shows its first four
-// members, and an unused preload costs a duplicate request and a warning.
+// Preload only what paints at startup; an unused preload costs a duplicate
+// request and a warning.
 export function preloadDesktopIcons() {
-  const hidden = new Set(state.folders.flatMap(folder => folder.siteIds.slice(4)));
   window.tabcatStartup?.preloadIcons([
-    ...state.sites.filter(site => !hidden.has(site.id) && !site.icon && !site.iconText).map(site => catalogIcon(site.url)),
+    ...state.sites.filter(site => !site.icon && !site.iconText).map(site => catalogIcon(site.url)),
     ...state.engines.map(engineIcon),
   ]);
 }
@@ -62,7 +61,8 @@ function gridMetrics() {
   const sidebarWidth = $('#siteLibraryModal').open && window.innerWidth > 620 ? $('#siteLibraryModal').getBoundingClientRect().width : 0;
   const available = window.innerWidth - sidebarWidth - (window.innerWidth < 620 ? 48 : 120);
   const columns = Math.min(state.layoutColumns, Math.max(2, Math.floor((available + gap) / (tileWidth + gap))));
-  return { columns, gap, width: columns * tileWidth + (columns - 1) * gap };
+  // Cells touch like a phone home screen: each one carries half a gap on every side.
+  return { columns, gap, width: columns * (tileWidth + gap) };
 }
 
 function pageCount() { return app.desktop?.pageCount() || 1; }
@@ -80,8 +80,8 @@ export function renderSites() {
   const { pages } = app.desktop.render(metrics.columns, state.layoutRows);
   // Reserve the configured rows so a sparse desktop doesn't shift the clock and search down.
   const rows = Math.max(1, state.layoutRows, ...pages.flatMap(page => page.map(item => item.y + item.height)));
-  document.documentElement.style.setProperty('--grid-row-height', `${state.iconSize + 38}px`);
-  document.documentElement.style.setProperty('--page-height', `${rows * (state.iconSize + 38) + (rows - 1) * state.rowGap}px`);
+  document.documentElement.style.setProperty('--grid-row-height', `${state.iconSize + 38 + state.rowGap}px`);
+  document.documentElement.style.setProperty('--page-height', `${rows * (state.iconSize + 38 + state.rowGap)}px`);
   app.currentPage = Math.max(0, Math.min(app.currentPage, pages.length - 1));
   updatePagination();
   fitDesktopHeight();

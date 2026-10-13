@@ -15,7 +15,7 @@ import { bindContextMenu, dismissContextMenu, isContextMenuOpen, moveContextMenu
 import { bindDesktopView, fitDesktopHeight, goToPage, preloadDesktopIcons, renderAll, renderDesktopIcon, renderSites, setEditMode, settleStartupIcons, suppressClicks, syncEditMode } from './desktop-view.js';
 import { bindEngines, closeEngineMenu, isEngineMenuOpen } from './engines.js';
 import { applyAppearance, bindSettings, closeSettings, decorateSettings, isSettingsOpen, populateTimezones, syncControls } from './settings.js';
-import { bindSites, openCustomSiteModal, openSite, openSiteModal, removeSite, siteCard } from './sites.js';
+import { bindSites, openCustomSiteModal, removeSite, siteCard } from './sites.js';
 import { bindWallpaper, refreshWallpaper, renderWallpaperChoices, setStoredWallpapers, showFallbackWallpaper, watchWallpapers } from './wallpaper.js';
 
 onStateAccepted(() => {
@@ -48,7 +48,7 @@ async function init() {
     if (result.site && !result.duplicate) await app.desktop.place(`site:${result.site.id}`, placement);
     return result;
   } });
-  app.desktop = createDesktop({ initialWeather: stored[WEATHER_STORAGE_KEY], addCandidate: (item, placement) => app.siteLibrary.addCandidate(item, placement), getState: () => state, isEditing: () => app.editMode, siteCard, renderIcon: renderDesktopIcon, render: renderAll, save: () => storage.save(), report: showStatus, openSite, editSite: openSiteModal, removeSite, goToPage, getPage: () => app.currentPage, suppress: () => suppressClicks(150) });
+  app.desktop = createDesktop({ initialWeather: stored[WEATHER_STORAGE_KEY], addCandidate: (item, placement) => app.siteLibrary.addCandidate(item, placement), getState: () => state, isEditing: () => app.editMode, siteCard, renderIcon: renderDesktopIcon, render: renderAll, save: () => storage.save(), report: showStatus, removeSite, goToPage, getPage: () => app.currentPage, suppress: () => suppressClicks(150) });
   bindEvents();
   syncControls();
   applyAppearance();

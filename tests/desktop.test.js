@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeState, mergeState, pinSite } from '../lib/state.js';
-import { desktopItems, packDesktop, mergeDesktopSites, moveDesktopItem, placeOnPage } from '../lib/desktop.js';
+import { desktopItems, packDesktop, moveDesktopItem, placeOnPage } from '../lib/desktop.js';
 import { createBackup, parseBackup } from '../lib/backup.js';
 
 test('old desktops migrate in order and a popup pin remains visible', () => {
@@ -13,28 +13,25 @@ test('old desktops migrate in order and a popup pin remains visible', () => {
   assert.deepEqual(desktopItems(merged).slice(0,4).map(item => item.id), ['youtube', 'bilibili', 'zhihu', 'github']);
   assert.equal(desktopItems(merged).at(-1).name, 'Example');
 });
-test('folder creation preserves target position, membership and backup roundtrip', () => {
-  const before = normalizeState(), after = structuredClone(before);
-  assert.ok(mergeDesktopSites(after, 'site:github', 'site:youtube', 'work'));
-  const merged = mergeState(before, before, after);
-  assert.equal(merged.desktopOrder[0].id, 'folder:work');
-  assert.deepEqual(merged.folders[0].siteIds, ['youtube', 'github']);
-  assert.ok(mergeDesktopSites(merged, 'site:zhihu', 'folder:work', 'unused'));
-  merged.widgets.push({ id: 'note', type: 'note', name: '备忘', text: '<script>literal</script>', width: 2, height: 2 });
-  assert.deepEqual(parseBackup(createBackup(normalizeState(merged))), normalizeState(merged));
+test('old folders open back up in place and a backup roundtrips', () => {
+  const state = normalizeState({ folders: [{ id: 'work', siteIds: ['zhihu', 'github', 'missing'] }], desktopOrder: [{ id: 'site:youtube' }, { id: 'folder:work' }, { id: 'site:bilibili' }] });
+  assert.equal(state.folders, undefined);
+  assert.deepEqual(state.desktopOrder.slice(0, 4).map(item => item.id), ['site:youtube', 'site:zhihu', 'site:github', 'site:bilibili']);
+  assert.equal(desktopItems(state).filter(item => item.kind === 'site').length, state.sites.length);
+  state.widgets.push({ id: 'note', type: 'note', name: '备忘', notes: [{ id: 'a', text: '<script>literal</script>', updatedAt: 1 }], width: 2, height: 2 });
+  assert.deepEqual(parseBackup(createBackup(normalizeState(state))), normalizeState(state));
 });
-test('invalid widget sources and duplicate memberships are removed without losing sites', () => {
-  const state = normalizeState({ folders: [{ id: 'one', siteIds: ['github','missing','github'] }, { id: 'two', siteIds: ['github', 'youtube'] }], widgets: [{ id: 'bad', type: 'web', url: 'javascript:alert(1)' }, { id: 'http', type: 'web', url: 'http://example.com' }, { id: 'bad-weather', type: 'weather', latitude: 100, longitude: 1 }, { id: 'note', type: 'note', text: 'x'.repeat(21000) }], desktopOrder: [{ id: 'site:missing' }, { id: 'folder:one' }, { id: 'folder:one' }] });
-  assert.deepEqual(state.folders.map(folder => folder.siteIds), [['github'], ['youtube']]);
-  assert.equal(state.widgets.length, 1); assert.equal(state.widgets[0].text.length, 20000);
+test('invalid widget sources and duplicate references are removed without losing sites', () => {
+  const state = normalizeState({ widgets: [{ id: 'bad', type: 'web', url: 'javascript:alert(1)' }, { id: 'http', type: 'web', url: 'http://example.com' }, { id: 'bad-weather', type: 'weather', latitude: 100, longitude: 1 }, { id: 'note', type: 'note', text: 'x'.repeat(21000) }], desktopOrder: [{ id: 'site:missing' }, { id: 'site:github' }, { id: 'site:github' }] });
+  assert.equal(state.widgets.length, 1); assert.equal(state.widgets[0].notes[0].text.length, 20000);
   assert.equal(new Set(state.desktopOrder.map(item => item.id)).size, state.desktopOrder.length);
-  assert.equal(desktopItems(state).filter(item => item.kind === 'site').length, state.sites.length - 2);
+  assert.equal(desktopItems(state).filter(item => item.kind === 'site').length, state.sites.length);
 });
 test('mixed-size grid never overlaps or exceeds the viewport at any supported width', () => {
   for (let columns = 2; columns <= 12; columns++) for (let preferredRows = 1; preferredRows <= 6; preferredRows++) {
     const items = Array.from({ length: 40 }, (_, i) => ({ key: String(i), width: i % 3 ? 1 : 4, height: i % 3 ? 1 : 3 }));
     const { pages, rows } = packDesktop(items, columns, preferredRows);
-    assert.deepEqual(pages.flat().map(item => item.key), items.map(item => item.key));
+    assert.deepEqual(pages.flat().map(item => item.key).sort(), items.map(item => item.key).sort());
     for (const page of pages) {
       const occupied = new Set();
       for (const item of page) {
@@ -45,6 +42,16 @@ test('mixed-size grid never overlaps or exceeds the viewport at any supported wi
       }
     }
   }
+});
+test('a widget that wraps leaves no hole for later shortcuts', () => {
+  const items = [...'abcde'.split('').map(key => ({ key, width: 1, height: 1 })), { key: 'w', width: 2, height: 2 }, { key: 'f', width: 1, height: 1 }, { key: 'g', width: 1, height: 1 }];
+  const { pages } = packDesktop(items, 6, 3);
+  const at = key => { const item = pages[0].find(item => item.key === key); return [item.x, item.y]; };
+  assert.equal(pages.length, 1);
+  assert.deepEqual(at('w'), [0, 1]); assert.deepEqual(at('f'), [5, 0]); assert.deepEqual(at('g'), [2, 1]);
+  // A page that cannot fit a big widget is still filled by the shortcuts after it.
+  const crowded = packDesktop([...'abcd'.split('').map(key => ({ key, width: 1, height: 1 })), { key: 'w', width: 2, height: 2 }, { key: 'e', width: 1, height: 1 }], 5, 1);
+  assert.deepEqual(crowded.pages.map(page => page.map(item => item.key)), [['a', 'b', 'c', 'd', 'e'], ['w']]);
 });
 test('cross-page drops land on the hovered slot after earlier pages reflow', () => {
   const keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
@@ -66,10 +73,18 @@ test('cross-page drops land on the hovered slot after earlier pages reflow', () 
 });
 
 test('stale widget settings preserve newer notes and deletions', () => {
-  const before = normalizeState({ widgets: [{ id: 'note', type: 'note', text: 'old' }] });
-  const current = structuredClone(before); current.widgets[0].text = 'new';
+  const before = normalizeState({ widgets: [{ id: 'note', type: 'note', notes: [{ id: 'a', text: 'old', updatedAt: 1 }] }] });
+  const current = structuredClone(before); current.widgets[0].notes[0] = { id: 'a', text: 'new', updatedAt: 2 };
   const after = structuredClone(before); after.widgets[0].name = 'Updated title';
   const merged = mergeState(current, before, after);
-  assert.equal(merged.widgets[0].text, 'new'); assert.equal(merged.widgets[0].name, 'Updated title');
+  assert.equal(merged.widgets[0].notes[0].text, 'new'); assert.equal(merged.widgets[0].name, 'Updated title');
   current.widgets = []; assert.equal(mergeState(current, before, after).widgets.length, 0);
+});
+test('a single old note becomes the first entry, and devices editing different notes keep both', () => {
+  assert.deepEqual(normalizeState({ widgets: [{ id: 'n', type: 'note', text: '买牛奶' }] }).widgets[0].notes, [{ id: 'note', text: '买牛奶', updatedAt: 0 }]);
+  assert.deepEqual(normalizeState({ widgets: [{ id: 'n', type: 'note', text: '  ' }] }).widgets[0].notes, []);
+  const before = normalizeState({ widgets: [{ id: 'n', type: 'note', notes: [{ id: 'a', text: 'A', updatedAt: 1 }, { id: 'b', text: 'B', updatedAt: 1 }] }] });
+  const current = structuredClone(before); current.widgets[0].notes[0] = { id: 'a', text: 'A2', updatedAt: 2 };
+  const after = structuredClone(before); after.widgets[0].notes[1] = { id: 'b', text: 'B2', updatedAt: 3 }; after.widgets[0].notes.push({ id: 'c', text: 'C', updatedAt: 4 });
+  assert.deepEqual(mergeState(current, before, after).widgets[0].notes.map(note => note.text), ['A2', 'B2', 'C']);
 });
