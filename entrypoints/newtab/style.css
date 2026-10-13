@@ -613,25 +613,28 @@ html:not(.editing) .desktop-tile .widget-card { cursor: pointer; }
 .widget-card:not(.widget-weather) .widget-tool-body { scrollbar-width: thin; }
 .widget-card.widget-note { --tool-tint: #ddb662; --tool-accent: #957535; }
 .widget-note .widget-header { color: var(--tool-accent); }
-.note-editor { flex: 1; min-height: 0; width: 100%; resize: none; border: 0; padding: 8px 20px; color: var(--text); font: 14px/30px var(--font); background: repeating-linear-gradient(transparent 0 29px, color-mix(in srgb, var(--tool-tint) 22%, transparent) 29px 30px); background-attachment: local; outline: none; }
+.note-editor { flex: 1; min-height: 0; width: 100%; resize: none; border: 0; padding: 16px 24px 8px; color: var(--text); font: 14px/30px var(--font); background: repeating-linear-gradient(transparent 0 29px, color-mix(in srgb, var(--tool-tint) 22%, transparent) 29px 30px); background-attachment: local; outline: none; }
 .note-editor::placeholder { color: var(--muted); }
 .note-status { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 14px; border-top: 1px solid color-mix(in srgb, var(--tool-tint) 20%, transparent); font-size: 10px; }
 .note-status [data-note-count] { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
-/* A widget opened larger: notes get a list and an editor, others a bigger card. */
-.widget-expanded { --tool-tint: #6b83b2; --tool-accent: #456799; width: min(880px, calc(100vw - 32px)); height: min(620px, calc(100dvh - 48px)); overflow: hidden; }
-.widget-expanded[open] { display: flex; flex-direction: column; }
-.widget-expanded[data-type="note"] { --tool-tint: #ddb662; --tool-accent: #957535; }
-.widget-expanded .modal-header { flex-shrink: 0; margin-bottom: 18px; }
-.widget-expanded-actions { display: flex; gap: 8px; }
-.widget-expanded-actions svg { width: 17px; height: 17px; }
-.widget-expanded-body { display: flex; flex: 1; min-height: 0; }
-.widget-expanded-body > .widget-card { flex: 1; height: auto; }
-.widget-expanded.is-zoomed { width: auto; height: auto; }
-.widget-expanded.is-zoomed .widget-expanded-body > .widget-card { flex: none; width: 300px; height: 260px; zoom: 1.7; }
-@media (max-width: 620px) { .widget-expanded.is-zoomed .widget-expanded-body > .widget-card { zoom: 1.05; } }
-.note-manager { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; flex: 1; min-height: 0; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-.note-sidebar { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 12px; border-right: 1px solid var(--border); background: var(--panel-soft); }
+/* A widget's detail popup: no title bar, the panel sized for its content. */
+.widget-detail { --tool-tint: #6b83b2; --tool-accent: #456799; --detail-width: 440px; --detail-height: 400px; width: min(var(--detail-width), calc(100vw - 32px)); max-width: none; max-height: none; padding: 0; border: 0; background: transparent; color: var(--text); overflow: visible; }
+.widget-detail::backdrop { background: #13232e45; backdrop-filter: blur(5px); }
+.widget-detail[open] { display: flex; flex-direction: column; gap: 10px; }
+.widget-detail[data-type="note"] { --tool-tint: #ddb662; --tool-accent: #957535; --detail-width: 880px; --detail-height: 600px; }
+.widget-detail[data-type="web"] { --detail-width: 1040px; --detail-height: 720px; }
+.widget-detail:is([data-type="todo"], [data-type="calendar"]) { --detail-width: 460px; --detail-height: 520px; }
+.widget-detail[data-type="calculator"] { --detail-width: 420px; --detail-height: 440px; }
+.widget-detail-actions { display: flex; align-self: flex-end; gap: 8px; }
+.widget-detail-actions button { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border-radius: 50%; color: var(--text); background: color-mix(in srgb, var(--panel) 82%, transparent); backdrop-filter: blur(14px); box-shadow: 0 4px 14px #0f1e2a26; }
+.widget-detail-actions button:hover { background: var(--panel); color: var(--accent); }
+.widget-detail-actions svg { width: 16px; height: 16px; }
+.widget-detail-body { display: flex; height: min(var(--detail-height), calc(100dvh - 92px)); overflow: hidden; border-radius: 22px; background: var(--panel); box-shadow: 0 24px 90px #14243b40; }
+.widget-detail-body > .widget-card { flex: 1; height: auto; border: 0; border-radius: 0; box-shadow: none; backdrop-filter: none; }
+.widget-detail-body > .widget-card > .widget-tool-body { padding: 22px 24px; }
+.note-manager { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; flex: 1; min-height: 0; }
+.note-sidebar { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 16px 12px; border-right: 1px solid var(--border); background: var(--panel-soft); }
 .note-new { flex-shrink: 0; }
 .note-list { display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow: auto; scrollbar-width: thin; }
 .note-item { display: grid; gap: 2px; width: 100%; padding: 9px 10px; border-radius: 10px; text-align: left; color: var(--text); }
@@ -728,3 +731,13 @@ html[data-theme="dark"] .widget-pomodoro .primary-button { color: #19252d; }
 .weather-night.moon-full .weather-moon { background: #f4edcb; box-shadow: 0 0 24px #e5edff33; transform: none; }
 .weather-night.moon-waning .weather-moon { transform: scaleX(-1); }
 .weather-content:has(.weather-cache-state) { justify-content: flex-start; gap: 4px; padding: 10px 14px; }
+
+/* Detail popups show the same content with more room; placed last to outrank each tool's own sizes. */
+.widget-detail .weather-content { padding: 28px 32px; gap: 10px; font-size: 14px; }
+.widget-detail .weather-city { font-size: 16px; }
+.widget-detail .weather-temperature { font-size: 84px; }
+.widget-detail .widget-time time { font-size: 56px; }
+.widget-detail .widget-time > span { font-size: 15px; }
+.widget-detail .countdown-content strong { font-size: 96px; }
+.widget-detail .countdown-content > span, .widget-detail .countdown-content time { font-size: 14px; }
+.widget-detail .timer-face strong { font-size: 52px; }
