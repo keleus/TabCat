@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 // pnpm release [patch|minor|major|x.y.z] [--dry-run]
 // Bump the version, commit, tag and push. The tag triggers .github/workflows/release.yml,
-// which builds the zip, publishes a GitHub release and submits it to the Chrome Web Store.
+// which builds the zip and publishes it as a GitHub release.
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const bump = args.find(arg => !arg.startsWith('--')) ?? 'patch';
@@ -63,4 +63,4 @@ step('git', ['tag', '-a', tag, '-m', tag]);
 step('git', ['push', '--atomic', 'origin', 'main', tag]);
 
 const repo = run('git', ['remote', 'get-url', 'origin']).replace(/^git@github\.com:/, 'https://github.com/').replace(/\.git$/, '');
-console.log(`✔ Pushed ${tag}. Build, GitHub release and Chrome Web Store submission run in CI: ${repo}/actions`);
+console.log(`✔ Pushed ${tag}. The GitHub release is built in CI: ${repo}/actions`);

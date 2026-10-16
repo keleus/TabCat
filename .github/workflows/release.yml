@@ -1,7 +1,6 @@
 name: Release
 
-# 由 `pnpm release` 推送的 v* 标签触发：打包 → GitHub Release → 提交 Chrome 应用商店审核。
-# 两个发布任务互相独立，任一失败后可在 Actions 里单独 "Re-run failed jobs"。
+# 由 `pnpm release` 推送的 v* 标签触发：测试、打包，并创建附带 ZIP 的 GitHub Release。
 on:
   push:
     tags: ['v*']
@@ -70,32 +69,3 @@ jobs:
           else
             gh release create "$GITHUB_REF_NAME" "$ZIP" --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
           fi
-
-  chrome-web-store:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: tabcat-chrome
-          path: output
-
-      - name: Submit to Chrome Web Store
-        env:
-          CHROME_API_VERSION: v2
-          CHROME_EXTENSION_ID: hgblemcigdpgbhdmkhfoeicmpnhkmngg
-          CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
-          CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL: ${{ secrets.CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL }}
-          CHROME_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.CHROME_SERVICE_ACCOUNT_PRIVATE_KEY }}
-        run: pnpm wxt submit --chrome-zip output/tabcat-${{ needs.build.outputs.version }}-chrome.zip
