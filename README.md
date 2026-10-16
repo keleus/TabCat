@@ -57,13 +57,13 @@ TabCat 无需注册账号，网站、桌面布局、小组件和设置保存在�
 
 目前可以从源码构建，并以开发者模式安装到 Chrome 或 Edge。
 
-需要 Node.js 22.12+：
+需要 Node.js 22.12+ 和 pnpm：
 
 ```sh
 git clone https://github.com/keleus/TabCat.git
 cd TabCat
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
 1. 打开 Chrome 的 `chrome://extensions/`，或 Edge 的 `edge://extensions/`。

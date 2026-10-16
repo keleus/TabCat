@@ -4,18 +4,18 @@ TabCat 基于 WXT、原生 JavaScript 和 CSS 构建，使用 Manifest V3。产�
 
 ## 开发与构建
 
-需要 Node.js 22.12+（或更新的受支持版本）。
+需要 Node.js 22.12+（或更新的受支持版本）和 pnpm。
 
 ```sh
-npm install
-npm run dev       # WXT 启动开发浏览器，输出 output/chrome-mv3-dev，支持热更新
-npm run build     # 输出 output/chrome-mv3
-npm run zip       # 生成可分发的扩展 ZIP
+pnpm install
+pnpm dev          # WXT 启动开发浏览器，输出 output/chrome-mv3-dev，支持热更新
+pnpm build        # 输出 output/chrome-mv3
+pnpm zip          # 生成可分发的扩展 ZIP
 ```
 
 ## 安装
 
-1. 运行 `npm install` 和 `npm run build`。
+1. 运行 `pnpm install` 和 `pnpm build`。
 2. 打开 `chrome://extensions/`（Edge 使用 `edge://extensions/`），开启「开发者模式」。
 3. 点击「加载已解压的扩展程序」，选择本项目的 **`output/chrome-mv3`** 目录。
 4. 新建标签页，按浏览器提示保留 TabCat 的新标签页设置。
@@ -90,11 +90,30 @@ npm run zip       # 生成可分发的扩展 ZIP
 ## 验证
 
 ```sh
-npm test                  # URL 校验、旧数据兼容、重复添加、并发合并
-npm run build
+pnpm test                 # URL 校验、旧数据兼容、重复添加、并发合并
+pnpm build
 ```
 
 界面改动请构建后在浏览器中加载 `output/chrome-mv3` 手动验证。
+
+推送到 `main` 或提交 PR 时，GitHub Actions 会运行测试并打包，ZIP 可在该次运行的 Artifacts 中下载。
+
+## 发布
+
+```sh
+pnpm release              # 补丁版本 +1；也可传 minor、major 或具体版本号，加 --dry-run 只检查不推送
+```
+
+脚本在 `main` 上确认工作区干净且不落后远端，跑测试和打包，然后更新 `package.json` 版本、提交、打 `vX.Y.Z` 标签并推送。标签触发 `.github/workflows/release.yml`：打包后创建 GitHub Release 并附上 ZIP，同时用 Chrome 应用商店 API v2 上传并提交审核。
+
+商店凭据保存在仓库的 Actions secrets 中，首次配置或更换时在本地设置环境变量后运行 `pnpm release:secrets`，它会先用 dry run 校验凭据，再写入 GitHub：
+
+| 环境变量 | 来源 |
+| --- | --- |
+| `CHROME_PUBLISHER_ID` | 开发者信息中心 → 账号 → 发布者 ID |
+| `CHROME_SERVICE_ACCOUNT_KEY_FILE` | 服务账号 JSON 密钥文件路径（或改设下面两项） |
+| `CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL` | JSON 密钥中的 `client_email` |
+| `CHROME_SERVICE_ACCOUNT_PRIVATE_KEY` | JSON 密钥中的 `private_key` |
 
 ## 目录
 
