@@ -36,7 +36,7 @@ async function chooseMode() {
   $('#syncModes').hidden = peek.remote !== 'ready';
   confirm.hidden = peek.remote === 'incomplete';
   if (peek.remote === 'ready') {
-    summary.textContent = `浏览器同步里已有 TabCat 的配置：${peek.sites} 个网站、${peek.widgets} 个小组件，${formatTime(peek.updated)} 更新。选择如何与本机合并：`;
+    summary.textContent = `浏览器同步里已有 TabCat 的配置：${peek.sites} 个网站、${peek.widgets} 个小组件，配置修改于 ${formatTime(peek.updated)}。选择如何与本机合并：`;
     confirm.textContent = '开启同步';
     $('#syncModeForm').elements.syncMode.value = 'merge';
   } else if (peek.remote === 'incomplete') {
@@ -67,10 +67,10 @@ function render(settings = {}) {
   $('#syncEnabled').checked = enabled; $('#syncEnabled').disabled = false;
   $('#syncNow').hidden = !enabled; $('#syncNow').disabled = false;
   status.classList.toggle('error', enabled && Boolean(settings.error));
-  if (!enabled) status.textContent = '未开启。开启后，本机和其他设备的网站会合并在一起，重复网址只保留一个。';
+  if (!enabled) status.textContent = '未开启。开启后自动同步配置，冲突时保留最近修改的内容；重复网址只保留一个。';
   else if (settings.error) status.textContent = `同步失败：${settings.error}。稍后会自动重试。`;
   else if (!settings.lastSync) status.textContent = '正在同步…';
-  else status.textContent = `上次同步：${formatTime(settings.lastSync)}`;
+  else status.textContent = `${settings.lastModified ? `配置修改：${formatTime(settings.lastModified)} · ` : ''}上次同步：${formatTime(settings.lastSync)}`;
 }
 
 const formatTime = time => new Date(time).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
