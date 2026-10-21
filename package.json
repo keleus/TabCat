@@ -2,7 +2,7 @@
   "name": "tabcat",
   "description": "按自己习惯布置的新标签页：常用网站、待办天气等小组件和每日壁纸，本地保存，可用浏览器同步与 WebDAV 跨设备使用。",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "wxt",
