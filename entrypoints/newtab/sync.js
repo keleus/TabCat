@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
-import { SYNC_SETTINGS } from '../../lib/sync.js';
-import { WEBDAV_SETTINGS, WEBDAV_STATUS } from '../../lib/webdav.js';
+import { SYNC_SETTINGS, SYNC_RETRY_DELAYS } from '../../lib/sync.js';
+import { WEBDAV_SETTINGS, WEBDAV_STATUS, WEBDAV_RETRY_DELAYS } from '../../lib/webdav.js';
 import { setSyncEnabled, peekSync, syncNow, saveWebdav, syncWebdav, clearWebdav } from '../../lib/storage.js';
 import { $, showStatus } from './app.js';
 
@@ -68,7 +68,7 @@ function render(settings = {}) {
   $('#syncNow').hidden = !enabled; $('#syncNow').disabled = false;
   status.classList.toggle('error', enabled && Boolean(settings.error));
   if (!enabled) status.textContent = '未开启。开启后自动同步配置，冲突时保留最近修改的内容；重复网址只保留一个。';
-  else if (settings.error) status.textContent = `同步失败：${settings.error}。稍后会自动重试。`;
+  else if (settings.error) status.textContent = `同步失败：${settings.error}。${settings.retries > SYNC_RETRY_DELAYS.length ? '已停止自动重试，下次修改或点「立即同步」时再试。' : '稍后会自动重试。'}`;
   else if (!settings.lastSync) status.textContent = '正在同步…';
   else status.textContent = `${settings.lastModified ? `配置修改：${formatTime(settings.lastModified)} · ` : ''}上次同步：${formatTime(settings.lastSync)}`;
 }
@@ -134,7 +134,7 @@ function renderWebdav(fillForm = false, keepStatus = false) {
   const element = $('#webdavStatus');
   element.classList.toggle('error', connected && Boolean(status.error));
   if (!connected) element.textContent = '未连接。上传的图标只保存在本机，其他设备会显示网站自己的图标。';
-  else if (status.error) element.textContent = `同步失败：${status.error}。稍后会自动重试。`;
+  else if (status.error) element.textContent = `同步失败：${status.error}。${status.retries > WEBDAV_RETRY_DELAYS.length ? '已停止自动重试，下次修改或点「立即同步」时再试。' : '稍后会自动重试。'}`;
   else if (!status.lastSync) element.textContent = '已连接，正在同步图片…';
-  else element.textContent = `上次同步：${formatTime(status.lastSync)}${status.missing ? `。还有 ${status.missing} 张图片尚未出现在 WebDAV 上，请在上传它们的设备上也连接 WebDAV` : ''}`;
+  else element.textContent = `上次同步：${formatTime(status.lastSync)}${status.missing ? `。还有 ${status.missing} 张图片尚未出现在 WebDAV 上，请在上传它们的设备上也连接 WebDAV，然后点「立即同步」` : ''}`;
 }

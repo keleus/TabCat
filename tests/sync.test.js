@@ -167,9 +167,11 @@ test('a half-arrived revision is ignored instead of being overwritten', async ()
   assert.equal((await second.sync.settings()).enabled, false);
   assert.equal(shared.data[SYNC_META].hash, 'not-yet');
   assert.deepEqual(second.state().sites.map(site => site.id), ['b']);
+  const alarms = first.alarms.created.length;
   await first.sync.reconcile();
   assert.equal(shared.data[SYNC_META].hash, 'not-yet');
-  assert.deepEqual(first.alarms.created.at(-1), [SYNC_RETRY_ALARM, { delayInMinutes: 1 }]);
+  // The rest of the revision fires a change event; no timer polls for it.
+  assert.equal(first.alarms.created.length, alarms);
   shared.data[SYNC_META] = meta;
   await second.sync.setEnabled(true);
   assert.deepEqual(second.state().sites.map(site => site.id).sort(), ['a', 'b']);
@@ -376,6 +378,15 @@ test('failed uploads keep the edit time across retries and worker restarts', asy
   assert.equal(first.local.data[STATE_UPDATED], 2000);
   assert.match((await first.sync.settings()).error, /QUOTA_BYTES/);
   assert.deepEqual(first.alarms.created.at(-1), [SYNC_RETRY_ALARM, { delayInMinutes: 1 }]);
+  for (const delay of [5, 30]) {
+    await first.sync.reconcile({ retry: true });
+    assert.deepEqual(first.alarms.created.at(-1), [SYNC_RETRY_ALARM, { delayInMinutes: delay }]);
+  }
+  // Out of retries: wait for the next change instead of polling.
+  const alarms = first.alarms.created.length;
+  await first.sync.reconcile({ retry: true });
+  assert.equal(first.alarms.created.length, alarms);
+  assert.equal(first.local.data[STATE_UPDATED], 2000);
   shared.set = set;
   const restarted = device(shared, undefined, { local: first.local, now: () => time });
   await restarted.sync.reconcile();

@@ -83,14 +83,15 @@ test('an uploaded icon goes to WebDAV once and arrives on the other device', asy
   assert.equal(desktop.local.data[WEBDAV_STATUS].missing, 0);
 });
 
-test('a picture not on the server yet is retried later, a damaged one is refused', async () => {
+test('a picture not on the server yet waits for the next pass, a damaged one is refused', async () => {
   const server = fakeServer();
   const ref = await iconRef(picture(9));
   const desktop = device(server, [{ id: 'a', name: 'A', url: 'https://a.example', icon: ref }]);
   await desktop.icons.save({ url: 'https://dav.example.com/dav/', username: 'me', password: 'secret' });
   assert.equal(desktop.state().sites[0].icon, ref);
   assert.equal(desktop.local.data[WEBDAV_STATUS].missing, 1);
-  assert.deepEqual(desktop.alarms.created.at(-1), ['tabcat:webdav-retry', { delayInMinutes: 30 }]);
+  // No timer polls the server for it.
+  assert.deepEqual(desktop.alarms.created, []);
   // Bytes that do not match the name are never shown.
   server.files.set(`/dav/TabCat/icons/${iconRefFile(ref)}`, new Uint8Array(300).fill(1));
   await desktop.icons.reconcile();
@@ -119,13 +120,21 @@ test('an empty password keeps the saved one; a new server forgets it', async () 
   assert.equal(WEBDAV_SETTINGS in laptop.local.data, false);
 });
 
-test('a failed pass records the error and schedules a retry', async () => {
+test('a failed pass records the error and retries a few times', async () => {
   const server = fakeServer();
   let online = false;
   const laptop = device({ fetch: (...args) => online ? server.fetch(...args) : Promise.reject(new TypeError('offline')) }, [{ id: 'a', name: 'A', url: 'https://a.example', icon: picture(3) }]);
   laptop.local.data[WEBDAV_SETTINGS] = { url: 'https://dav.example.com/dav/', username: 'me', password: 'secret' };
   await laptop.icons.reconcile();
   assert.match(laptop.local.data[WEBDAV_STATUS].error, /无法连接/);
+  assert.deepEqual(laptop.alarms.created.at(-1), ['tabcat:webdav-retry', { delayInMinutes: 5 }]);
+  await laptop.icons.reconcile({ retry: true });
+  assert.deepEqual(laptop.alarms.created.at(-1), ['tabcat:webdav-retry', { delayInMinutes: 30 }]);
+  // Out of retries: wait for the next change instead of polling.
+  await laptop.icons.reconcile({ retry: true });
+  assert.equal(laptop.alarms.created.length, 2);
+  // A new change starts the retries over.
+  await laptop.icons.reconcile();
   assert.deepEqual(laptop.alarms.created.at(-1), ['tabcat:webdav-retry', { delayInMinutes: 5 }]);
   online = true;
   await laptop.icons.reconcile();

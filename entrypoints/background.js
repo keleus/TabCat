@@ -20,12 +20,15 @@ export default defineBackground(() => {
     if (area === 'sync' && Object.keys(changes).some(key => key.startsWith(SYNC_CHUNK))) void sync.reconcile();
   });
   browser.alarms.onAlarm.addListener(alarm => {
-    if (alarm.name === SYNC_RETRY_ALARM) void sync.reconcile();
-    if (alarm.name === WEBDAV_RETRY_ALARM) void icons.reconcile();
+    if (alarm.name === SYNC_RETRY_ALARM) void sync.reconcile({ retry: true });
+    if (alarm.name === WEBDAV_RETRY_ALARM) void icons.reconcile({ retry: true });
   });
-  // Catch up with changes that arrived while the worker was suspended.
-  void sync.reconcile();
-  void icons.reconcile();
+  // Sync runs only when something changed. Change events wake a suspended
+  // worker, so a worker restart (e.g. for the wallpaper alarm) does not sync;
+  // a browser launch or extension update catches up once.
+  const catchUp = () => { void sync.reconcile(); void icons.reconcile(); };
+  browser.runtime.onStartup.addListener(catchUp);
+  browser.runtime.onInstalled.addListener(catchUp);
   browser.runtime.onMessage.addListener((message, sender, respond) => {
     if (sender.id !== browser.runtime.id || (sender.url && !sender.url.startsWith(browser.runtime.getURL('/')))) return;
     if (['tabcat:suggest', 'tabcat:bing', 'tabcat:gallery', 'tabcat:icon-document', 'tabcat:icon-image'].includes(message?.type)) {
